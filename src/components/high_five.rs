@@ -1,4 +1,4 @@
-use dioxus::prelude::*;
+use ::dioxus::prelude::*;
 
 #[allow(non_snake_case)]
 pub fn HighFive(cx: Scope) -> Element {
