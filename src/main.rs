@@ -1,16 +1,26 @@
-use dioxus_oidc_prototype::launch;
+#[cfg(feature = "hydrate")]
+use ::dioxus_fullstack::prelude::*;
+#[cfg(feature = "hydrate")]
+use ::dioxus_fullstack::router::{FullstackRouterConfig, RouteWithCfg};
+#[cfg(feature = "hydrate")]
+use ::dioxus_web::Config;
+#[cfg(feature = "hydrate")]
+use dioxus_oidc_prototype::route::Route;
 
 #[cfg(feature = "hydrate")]
 fn main() {
-  dioxus_web::launch_with_props(
-    dioxus_fullstack::router::RouteWithCfg::<dioxus_oidc_prototype::route::Route>,
-    dioxus_fullstack::prelude::get_root_props_from_document()
-      .expect("Failed to get root props from document"),
-    dioxus_web::Config::default().hydrate(true),
+  let root_properties: FullstackRouterConfig<Route> =
+    get_root_props_from_document()
+      .expect("Failed to get root properties from document");
+  let config = Config::default().hydrate(true);
+  ::dioxus_web::launch_with_props(
+    RouteWithCfg::<Route>,
+    root_properties,
+    config,
   );
 }
 
 #[cfg(not(feature = "hydrate"))]
 fn main() {
-  launch();
+  dioxus_oidc_prototype::launch();
 }
