@@ -1,3 +1,14 @@
+use dioxus::prelude::*;
+
 fn main() {
-    println!("Hello, world!");
+  dioxus_web::launch(App);
+}
+
+#[allow(non_snake_case)]
+fn App(cx: Scope) -> Element {
+  cx.render(rsx! {
+    div {
+      "Hello, World!"
+    }
+  })
 }
