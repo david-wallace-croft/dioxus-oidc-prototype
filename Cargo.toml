@@ -1,0 +1,11 @@
+[package]
+authors = ["David Wallace Croft <david@CroftSoft.com>"]
+description = "Dioxus OIDC Prototype"
+edition = "2021"
+homepage = "https://www.CroftSoft.com/"
+license = "MIT"
+name = "dioxus-oidc-prototype"
+publish = false
+readme = "README.md"
+repository = "https://github.com/david-wallace-croft/dioxus-oidc-prototype"
+version = "0.0.0-SNAPSHOT"
