@@ -9,7 +9,7 @@ async fn main() {
   let fullstack_router_config = FullstackRouterConfig::<Route>::default();
   let incremental_renderer_config =
     IncrementalRendererConfig::default().static_dir(DIST);
-  let serve_config =
+  let serve_config: ServeConfig<FullstackRouterConfig<Route>> =
     ServeConfigBuilder::new_with_router(fullstack_router_config)
       .assets_path(DIST)
       .incremental(incremental_renderer_config)
