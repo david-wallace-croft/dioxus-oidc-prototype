@@ -15,6 +15,12 @@ pub fn Nav(cx: Scope) -> Element {
         }
         li {
           Link {
+            to: Route::Login {},
+            "Login"
+          }
+        }
+        li {
+          Link {
             to: Route::Colophon {},
             "Colophon"
           }

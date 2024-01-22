@@ -1,5 +1,6 @@
 use super::components::colophon::Colophon;
 use super::components::home::Home;
+use super::components::login::Login;
 use super::components::page_not_found::PageNotFound;
 use super::components::template::Template;
 use ::dioxus::prelude::*;
@@ -13,6 +14,8 @@ pub enum Route {
   Home {},
   #[route("/colophon")]
   Colophon {},
+  #[route("/login")]
+  Login {},
   #[end_layout]
   #[route("/:..route")]
   PageNotFound {
