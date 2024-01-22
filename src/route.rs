@@ -1,3 +1,4 @@
+use super::components::login::LoginQuerySegments;
 use super::components::colophon::Colophon;
 use super::components::home::Home;
 use super::components::login::Login;
@@ -14,8 +15,10 @@ pub enum Route {
   Home {},
   #[route("/colophon")]
   Colophon {},
-  #[route("/login")]
-  Login {},
+  #[route("/login?:query_params")]
+  Login {
+    query_params: LoginQuerySegments,
+  },
   #[end_layout]
   #[route("/:..route")]
   PageNotFound {

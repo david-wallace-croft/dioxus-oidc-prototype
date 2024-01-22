@@ -1,3 +1,5 @@
+use crate::components::login::LoginQuerySegments;
+
 use super::super::route::Route;
 use ::dioxus::prelude::*;
 use ::dioxus_router::prelude::*;
@@ -15,7 +17,11 @@ pub fn Nav(cx: Scope) -> Element {
         }
         li {
           Link {
-            to: Route::Login {},
+            to: Route::Login {
+              query_params: LoginQuerySegments {
+                placeholder: String::new(),
+              }
+            },
             "Login"
           }
         }
