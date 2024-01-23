@@ -8,8 +8,9 @@ const DIST: &str = "dist";
 #[tokio::main]
 async fn main() {
   let fullstack_router_config = FullstackRouterConfig::<Route>::default();
-  let incremental_renderer_config =
-    IncrementalRendererConfig::default().map_path(map_path).static_dir(DIST);
+  let incremental_renderer_config = IncrementalRendererConfig::default()
+    .map_path(map_path)
+    .static_dir(DIST);
   let serve_config: ServeConfig<FullstackRouterConfig<Route>> =
     ServeConfigBuilder::new_with_router(fullstack_router_config)
       .assets_path(DIST)
@@ -23,12 +24,12 @@ async fn main() {
 fn map_path(route: &str) -> PathBuf {
   println!("route: {}", route);
   let query_index_option: Option<usize> = route.find('?');
-  let route2: String = match query_index_option {
+  let route_without_query: String = match query_index_option {
     Some(query_index) => route[..query_index].to_owned(),
     None => route.to_owned(),
   };
   let mut path = PathBuf::from(DIST);
-  for segment in route2.split_terminator('/') {
+  for segment in route_without_query.split_terminator('/') {
     println!("segment: {}", segment);
     path.push(segment);
   }
