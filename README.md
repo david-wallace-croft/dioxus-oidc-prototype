@@ -74,11 +74,6 @@
   - Starts the http-server
   - Opens the browser
 
-## TODO
-
-- Restore the prettier configuration
-- Bump the version number
-
 ## History
 
 - Initial release: 2024-01-21
