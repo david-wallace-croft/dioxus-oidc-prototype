@@ -1,4 +1,4 @@
-use crate::components::login::LoginQuerySegments;
+use crate::components::callback::CallbackQuerySegments;
 
 use super::super::route::Route;
 use ::dioxus::prelude::*;
@@ -8,6 +8,7 @@ use ::dioxus_router::prelude::*;
 pub fn Nav(cx: Scope) -> Element {
   render! {
     nav {
+      class: "app-nav",
       ul {
         li {
           Link {
@@ -17,12 +18,12 @@ pub fn Nav(cx: Scope) -> Element {
         }
         li {
           Link {
-            to: Route::Login {
-              query_params: LoginQuerySegments {
+            to: Route::Callback {
+              query_params: CallbackQuerySegments {
                 placeholder: String::new(),
               }
             },
-            "Login"
+            "Callback"
           }
         }
         li {

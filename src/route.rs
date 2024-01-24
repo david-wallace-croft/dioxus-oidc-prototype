@@ -1,7 +1,7 @@
-use super::components::login::LoginQuerySegments;
+use super::components::callback::Callback;
+use super::components::callback::CallbackQuerySegments;
 use super::components::colophon::Colophon;
 use super::components::home::Home;
-use super::components::login::Login;
 use super::components::page_not_found::PageNotFound;
 use super::components::template::Template;
 use ::dioxus::prelude::*;
@@ -15,9 +15,9 @@ pub enum Route {
   Home {},
   #[route("/colophon")]
   Colophon {},
-  #[route("/login?:query_params")]
-  Login {
-    query_params: LoginQuerySegments,
+  #[route("/callback?:query_params")]
+  Callback {
+    query_params: CallbackQuerySegments,
   },
   #[end_layout]
   #[route("/:..route")]
