@@ -1,3 +1,8 @@
+:root {
+  --app-background-color: black;
+  --app-color: #ff9718;
+}
+
 .app-callback {
   text-align: center;
 }
@@ -29,6 +34,16 @@
   text-align: center;
 }
 
+.app-login-logout-button {
+  background-color: var(--app-background-color);
+  border-color: var(--app-color);
+  border-radius: 1rem;
+  border-width: 1px;
+  border-style: solid;
+  color: var(--app-color);
+  padding: 1rem;
+}
+
 .app-nav ul {
   column-gap: 1rem;
   display: grid;
@@ -44,8 +59,8 @@
 }
 
 body {
-  background-color: black;
-  color: #ff9718;
+  background-color: var(--app-background-color);
+  color: var(--app-color);
 }
 
 body a:visited {
