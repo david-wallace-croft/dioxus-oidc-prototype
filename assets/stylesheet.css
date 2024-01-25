@@ -38,10 +38,22 @@
   background-color: var(--app-background-color);
   border-color: var(--app-color);
   border-radius: 1rem;
-  border-width: 1px;
+  border-width: 0.1rem;
   border-style: solid;
   color: var(--app-color);
+  cursor: pointer;
   padding: 1rem;
+  transition-duration: 0.3s;
+}
+
+.app-login-logout-button:active {
+  filter: brightness(1.2);
+  transform: translateY(0.2rem);
+}
+
+.app-login-logout-button:hover {
+  background-color: var(--app-color);
+  color: var(--app-background-color);
 }
 
 .app-nav ul {
