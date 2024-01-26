@@ -1,4 +1,4 @@
-use super::login_logout_button::LoginLogoutButton;
+use super::login_logout::LoginLogout;
 use super::nav::Nav;
 use ::dioxus::prelude::*;
 
@@ -14,7 +14,7 @@ pub fn Header(cx: Scope) -> Element {
   Nav { }
   div {
     class: "app-header-button",
-  LoginLogoutButton { }
+  LoginLogout { }
   }
   }
   }

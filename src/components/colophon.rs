@@ -5,7 +5,7 @@ pub fn Colophon(cx: Scope) -> Element {
   render! {
   main {
     class: "app-colophon",
-  h1 { "Colophon Page" }
+  h1 { "Colophon" }
   p {
   "This website was created using the Rust library ",
   a {
