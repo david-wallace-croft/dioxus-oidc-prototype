@@ -54,15 +54,19 @@ fn on_click_login(
   _use_state_client_state: &UseState<ClientState>,
 ) {
   log::info!("Clicked");
+  // TODO: Why is this not called on the second click?
   use_future(cx, (), |_| async move { on_click_login_async().await });
   // let option: Option<&Result<(ClientId, CoreClient), Error>> =
   //   init_client_future.value();
 }
 
 async fn on_click_login_async() {
+  log::info!("Initializing OIDC client...");
   let result: Result<(ClientId, CoreClient), Error> = init_oidc_client().await;
   if result.is_err() {
     let error: Error = result.err().unwrap();
     log::error!("{error}");
+    return;
   }
+  log::info!("Success");
 }
