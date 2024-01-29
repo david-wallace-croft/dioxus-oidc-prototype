@@ -9,6 +9,7 @@ use ::dioxus::prelude::*;
 use ::openidconnect::core::CoreClient;
 use ::openidconnect::ClientId;
 use ::std::future::Future;
+use ::web_sys::{window, Window};
 
 mod constants;
 mod errors;
@@ -32,15 +33,16 @@ pub fn LoginLogout(cx: Scope) -> Element {
       oidc_client: None,
     });
   use_on_create(cx, || {
+    to_owned![use_state_auth_request_state];
     to_owned![use_state_client_state];
-    initialize_oidc_client(use_state_client_state)
+    initialize_oidc_client(use_state_auth_request_state, use_state_client_state)
   });
   render! {
   div {
     class: "app-login-logout",
     button {
-      // disabled: disabled,
-      onclick: move |_event| on_click_login(),
+      // disabled: use_state_auth_request_state.auth_request.is_none(),
+      onclick: move |_event| on_click_login(use_state_auth_request_state.clone()),
       r#type: "button",
       "Login"
     }
@@ -48,7 +50,10 @@ pub fn LoginLogout(cx: Scope) -> Element {
   }
 }
 
-async fn initialize_oidc_client(use_state_client_state: UseState<ClientState>) {
+async fn initialize_oidc_client(
+  use_state_auth_request_state: UseState<AuthRequestState>,
+  use_state_client_state: UseState<ClientState>,
+) {
   let client_props_option: &Option<ClientProps> =
     &use_state_client_state.oidc_client;
   if client_props_option.is_some() {
@@ -74,8 +79,27 @@ async fn initialize_oidc_client(use_state_client_state: UseState<ClientState>) {
     oidc_client: client_props_option,
   };
   use_state_client_state.set(client_state);
+  let auth_request: AuthRequest = authorize_url(client.clone());
+  let auth_request_state = AuthRequestState {
+    auth_request: Some(auth_request.clone()),
+  };
+  use_state_auth_request_state.set(auth_request_state);
 }
 
-fn on_click_login() {
+fn on_click_login(use_state_auth_request_state: UseState<AuthRequestState>) {
   log::info!("Login clicked.");
+  let auth_request_ref_option: Option<&AuthRequest> =
+    use_state_auth_request_state.auth_request.as_ref();
+  if auth_request_ref_option.is_none() {
+    return;
+  }
+  let auth_request_ref: &AuthRequest = auth_request_ref_option.unwrap();
+  let authorize_url_str: &str = auth_request_ref.authorize_url.as_str();
+  log::info!("URL: {authorize_url_str}");
+  let window_option: Option<Window> = window();
+  if window_option.is_none() {
+    return;
+  }
+  let window: Window = window_option.unwrap();
+  let _result = window.open_with_url_and_target(authorize_url_str, "_self");
 }

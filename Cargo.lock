@@ -724,6 +724,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "wasm-logger",
+ "web-sys",
 ]
 
 [[package]]
