@@ -1,7 +1,7 @@
 use ::dioxus::prelude::*;
 use ::openidconnect::{core::CoreClient, ClientId};
 
-#[derive(Props, Clone, Debug)]
+#[derive(Clone, Debug, Props)]
 pub struct ClientProps {
   pub client: CoreClient,
   pub client_id: ClientId,
