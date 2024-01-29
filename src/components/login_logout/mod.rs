@@ -31,7 +31,10 @@ pub fn LoginLogout(cx: Scope) -> Element {
     use_state(cx, || ClientState {
       oidc_client: None,
     });
-  initialize_oidc_client(cx, use_state_client_state);
+  use_on_create(cx, || {
+    to_owned![use_state_client_state];
+    initialize_oidc_client(use_state_client_state)
+  });
   render! {
   div {
     class: "app-login-logout",
@@ -45,10 +48,7 @@ pub fn LoginLogout(cx: Scope) -> Element {
   }
 }
 
-fn initialize_oidc_client<'a>(
-  cx: Scope<'a>,
-  use_state_client_state: &'a UseState<ClientState>,
-) {
+async fn initialize_oidc_client(use_state_client_state: UseState<ClientState>) {
   let client_props_option: &Option<ClientProps> =
     &use_state_client_state.oidc_client;
   if client_props_option.is_some() {
@@ -57,28 +57,17 @@ fn initialize_oidc_client<'a>(
     log::info!("{client_props:?}");
     return;
   }
-  let init_client_future: &UseFuture<Result<(ClientId, CoreClient), Error>> =
-    use_future(cx, (), |_| async move {
-      log::info!("Initializing OIDC client...");
-      init_oidc_client().await
-    });
-  let option: Option<&Result<(ClientId, CoreClient), Error>> =
-    init_client_future.value();
-  if option.is_none() {
-    log::info!("Waiting for OIDC client initialization...");
-    return;
-  }
-  let result: &Result<(ClientId, CoreClient), Error> = option.unwrap();
-  let result_ref: Result<&(ClientId, CoreClient), &Error> = result.as_ref();
+  log::info!("Initializing OIDC client...");
+  let result: Result<(ClientId, CoreClient), Error> = init_oidc_client().await;
   if result.is_err() {
-    let error: &Error = result_ref.unwrap_err();
+    let error: Error = result.unwrap_err();
     log::error!("{error}");
     return;
   }
   log::info!("Client properties loaded.");
-  let result_value: &(ClientId, CoreClient) = result_ref.unwrap();
-  let client_id: &ClientId = &result_value.0;
-  let client: &CoreClient = &result_value.1;
+  let result_value = result.unwrap();
+  let client_id: ClientId = result_value.0;
+  let client: CoreClient = result_value.1;
   let client_props = ClientProps::new(client_id.clone(), client.clone());
   let client_props_option: Option<ClientProps> = Some(client_props);
   let client_state = ClientState {
