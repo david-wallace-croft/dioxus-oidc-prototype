@@ -20,7 +20,8 @@ pub fn Nav(cx: Scope) -> Element {
           Link {
             to: Route::Callback {
               query_params: CallbackQuerySegments {
-                placeholder: String::new(),
+                code: String::new(),
+                state: String::new(),
               }
             },
             "Callback"

@@ -86,10 +86,10 @@ pub async fn init_oidc_client(
     ClientId::new(super::constants::DIOXUS_FRONT_CLIENT_ID.to_string());
   let provider_metadata = init_provider_metadata().await?;
   let client_secret = None;
-  // let redirect_url =
-  //   RedirectUrl::new(format!("{}/login", super::constants::DIOXUS_FRONT_URL))?;
-  let redirect_url =
-    RedirectUrl::new(format!("{}", super::constants::DIOXUS_FRONT_URL))?;
+  let redirect_url = RedirectUrl::new(format!(
+    "{}/callback",
+    super::constants::DIOXUS_FRONT_URL
+  ))?;
 
   Ok((
     client_id.clone(),

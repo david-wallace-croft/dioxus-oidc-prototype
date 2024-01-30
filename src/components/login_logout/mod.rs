@@ -4,7 +4,6 @@ use self::oidc::{
   AuthTokenState, ClientState,
 };
 use self::props::client::ClientProps;
-use self::query::LoginQuerySegments;
 use ::dioxus::prelude::*;
 use ::openidconnect::core::CoreClient;
 use ::openidconnect::ClientId;
@@ -15,7 +14,6 @@ mod constants;
 mod errors;
 mod oidc;
 mod props;
-mod query;
 
 #[allow(non_snake_case)]
 pub fn LoginLogout(cx: Scope) -> Element {
