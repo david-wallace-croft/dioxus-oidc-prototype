@@ -1,9 +1,12 @@
+use super::login_logout::oidc::ClientState;
+use super::login_logout::props::client::ClientProps;
 use ::dioxus::prelude::*;
 use ::dioxus_router::routable::FromQuery;
 use ::form_urlencoded::Parse;
+use ::serde::{Deserialize, Serialize};
 use ::std::borrow::Cow;
-use ::std::fmt::{Display, Formatter, Result};
-use serde::{Deserialize, Serialize};
+use ::std::fmt::{self, Display, Formatter};
+use openidconnect::core::CoreTokenResponse;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CallbackQuerySegments {
@@ -15,7 +18,7 @@ impl Display for CallbackQuerySegments {
   fn fmt(
     &self,
     formatter: &mut Formatter<'_>,
-  ) -> Result {
+  ) -> fmt::Result {
     write!(formatter, "code={}&state={}", self.code, self.state)
   }
 }
@@ -46,6 +49,42 @@ pub fn Callback(
   cx: Scope,
   query_params: CallbackQuerySegments,
 ) -> Element {
+  // TODO: retrieve client state from local storage
+  let use_state_client_state: &UseState<ClientState> =
+    use_state(cx, || ClientState {
+      oidc_client: None,
+    });
+  let client_props_option: &Option<ClientProps> =
+    &use_state_client_state.oidc_client;
+  if client_props_option.is_some() {
+    log::info!("Client properties retrieved.");
+    let client_props: &ClientProps = client_props_option.as_ref().unwrap();
+    log::info!("{client_props:?}");
+    if !query_params.code.is_empty() && !query_params.state.is_empty() {
+      let oidc_client = client_props.client.clone();
+      let authorization_code: String = query_params.code.clone();
+      // TODO: state
+      cx.spawn(async move {
+        let result: Result<
+          CoreTokenResponse,
+          super::login_logout::errors::Error,
+        > = super::login_logout::oidc::token_response(
+          &oidc_client,
+          authorization_code,
+        )
+        .await;
+        match result {
+          Ok(token_response) => {
+            log::info!("{token_response:?}");
+          },
+          Err(error) => {
+            log::error!("{error:?}");
+          },
+        };
+      });
+    }
+  }
+
   render! {
   main {
     class: "app-callback",

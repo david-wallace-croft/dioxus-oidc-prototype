@@ -12,6 +12,7 @@ use ::openidconnect::{
   RedirectUrl, RefreshToken, RequestTokenError, StandardErrorResponse,
 };
 use ::serde::{Deserialize, Serialize};
+use oauth2::CodeTokenRequest;
 
 #[derive(Clone, Debug, Default)]
 pub struct ClientState {
@@ -102,19 +103,19 @@ pub async fn init_oidc_client(
   ))
 }
 
-///TODO: Add pkce_pacifier
 pub async fn token_response(
-  oidc_client: CoreClient,
-  code: String,
+  oidc_client: &CoreClient,
+  authorization_code_string: String,
 ) -> Result<CoreTokenResponse, super::errors::Error> {
-  // let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
-  Ok(
-    oidc_client
-        .exchange_code(AuthorizationCode::new(code.clone()))
-        // .set_pkce_verifier(pkce_verifier)
-        .request_async(async_http_client)
-        .await?,
-  )
+  let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
+  // TODO: store the pkce
+  let authorization_code = AuthorizationCode::new(authorization_code_string);
+  let code_token_request: CodeTokenRequest<_, _, _> = oidc_client
+    .exchange_code(authorization_code)
+    .set_pkce_verifier(pkce_verifier);
+  let result: CoreTokenResponse =
+    code_token_request.request_async(async_http_client).await?;
+  Ok(result)
 }
 
 pub async fn exchange_refresh_token(

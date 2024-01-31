@@ -11,9 +11,9 @@ use ::std::future::Future;
 use ::web_sys::{window, Window};
 
 mod constants;
-mod errors;
-mod oidc;
-mod props;
+pub mod errors;
+pub mod oidc;
+pub mod props;
 
 #[allow(non_snake_case)]
 pub fn LoginLogout(cx: Scope) -> Element {
