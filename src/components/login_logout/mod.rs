@@ -7,7 +7,6 @@ use self::props::client::ClientProps;
 use ::dioxus::prelude::*;
 use ::openidconnect::core::CoreClient;
 use ::openidconnect::ClientId;
-use ::std::future::Future;
 use ::web_sys::{window, Window};
 
 mod constants;
@@ -26,14 +25,18 @@ pub fn LoginLogout(cx: Scope) -> Element {
       id_token: None,
       refresh_token: None,
     });
-  let use_state_client_state: &UseState<ClientState> =
-    use_state(cx, || ClientState {
-      oidc_client: None,
-    });
+  let use_shared_state_client_state_option: Option<
+    &UseSharedState<ClientState>,
+  > = use_shared_state::<ClientState>(cx);
+  let use_shared_state_client_state: &UseSharedState<ClientState> =
+    use_shared_state_client_state_option.unwrap();
   use_on_create(cx, || {
     to_owned![use_state_auth_request_state];
-    to_owned![use_state_client_state];
-    initialize_oidc_client(use_state_auth_request_state, use_state_client_state)
+    to_owned![use_shared_state_client_state];
+    initialize_oidc_client(
+      use_state_auth_request_state,
+      use_shared_state_client_state,
+    )
   });
   render! {
   div {
@@ -50,15 +53,21 @@ pub fn LoginLogout(cx: Scope) -> Element {
 
 async fn initialize_oidc_client(
   use_state_auth_request_state: UseState<AuthRequestState>,
-  use_state_client_state: UseState<ClientState>,
+  use_shared_state_client_state: UseSharedState<ClientState>,
 ) {
-  let client_props_option: &Option<ClientProps> =
-    &use_state_client_state.oidc_client;
-  if client_props_option.is_some() {
-    log::info!("Client properties retrieved.");
-    let client_props: &ClientProps = client_props_option.as_ref().unwrap();
-    log::info!("{client_props:?}");
-    return;
+  {
+    let client_state_ref: Ref<'_, ClientState> =
+      use_shared_state_client_state.read();
+    let client_props_option_ref: &Option<ClientProps> =
+      &client_state_ref.oidc_client;
+    let client_props_option: Option<&ClientProps> =
+      client_props_option_ref.as_ref();
+    if client_props_option.is_some() {
+      log::info!("Client properties loaded from shared state.");
+      let client_props: &ClientProps = client_props_option.as_ref().unwrap();
+      log::info!("{client_props:?}");
+      return;
+    }
   }
   log::info!("Initializing OIDC client...");
   let result: Result<(ClientId, CoreClient), Error> = init_oidc_client().await;
@@ -67,7 +76,7 @@ async fn initialize_oidc_client(
     log::error!("{error}");
     return;
   }
-  log::info!("Client properties loaded.");
+  log::info!("Client properties initialized.");
   let result_value = result.unwrap();
   let client_id: ClientId = result_value.0;
   let client: CoreClient = result_value.1;
@@ -76,7 +85,10 @@ async fn initialize_oidc_client(
   let client_state = ClientState {
     oidc_client: client_props_option,
   };
-  use_state_client_state.set(client_state);
+  let mut client_state_ref_mut: RefMut<'_, ClientState> =
+    use_shared_state_client_state.write();
+  *client_state_ref_mut = client_state;
+  log::info!("Client properties saved to shared state.");
   let auth_request: AuthRequest = authorize_url(client.clone());
   let auth_request_state = AuthRequestState {
     auth_request: Some(auth_request.clone()),
