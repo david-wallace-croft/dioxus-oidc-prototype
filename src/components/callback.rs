@@ -50,12 +50,17 @@ pub fn Callback(
   query_params: CallbackQuerySegments,
 ) -> Element {
   // TODO: retrieve client state from local storage
-  let use_state_client_state: &UseState<ClientState> =
-    use_state(cx, || ClientState {
-      oidc_client: None,
-    });
-  let client_props_option: &Option<ClientProps> =
-    &use_state_client_state.oidc_client;
+  let use_shared_state_client_state_option: Option<
+    &UseSharedState<ClientState>,
+  > = use_shared_state::<ClientState>(cx);
+  let use_shared_state_client_state: &UseSharedState<ClientState> =
+    use_shared_state_client_state_option.unwrap();
+  let client_state_ref: Ref<'_, ClientState> =
+    use_shared_state_client_state.read();
+  let client_props_option_ref: &Option<ClientProps> =
+    &client_state_ref.oidc_client;
+  let client_props_option: Option<&ClientProps> =
+    client_props_option_ref.as_ref();
   if client_props_option.is_some() {
     log::info!("Client properties retrieved.");
     let client_props: &ClientProps = client_props_option.as_ref().unwrap();
