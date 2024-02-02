@@ -60,6 +60,7 @@ pub fn authorize_url(client: CoreClient) -> AuthRequest {
       CsrfToken::new_random,
       Nonce::new_random,
     )
+    // TODO: Do I need to add the openid scope?
     // .add_scope(openidconnect::Scope::new("email".to_string()))
     // .add_scope(openidconnect::Scope::new("profile".to_string()))
     .set_pkce_challenge(pkce_challenge)
@@ -91,7 +92,6 @@ pub async fn init_oidc_client(
     "{}/callback",
     super::constants::DIOXUS_FRONT_URL
   ))?;
-
   Ok((
     client_id.clone(),
     CoreClient::from_provider_metadata(
@@ -107,11 +107,13 @@ pub async fn token_response(
   oidc_client: &CoreClient,
   authorization_code_string: String,
 ) -> Result<CoreTokenResponse, super::errors::Error> {
+  // TODO: Retrieve the pkce_verifier from localstorage
   let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
-  // TODO: store the pkce
   let authorization_code = AuthorizationCode::new(authorization_code_string);
   let code_token_request: CodeTokenRequest<_, _, _> = oidc_client
     .exchange_code(authorization_code)
+    // TODO: Is this openid scope necessary?
+    .add_extra_param("scope", "openid")
     .set_pkce_verifier(pkce_verifier);
   let result: CoreTokenResponse =
     code_token_request.request_async(async_http_client).await?;

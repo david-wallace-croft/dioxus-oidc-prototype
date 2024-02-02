@@ -68,7 +68,7 @@ pub fn Callback(
     if !query_params.code.is_empty() && !query_params.state.is_empty() {
       let oidc_client = client_props.client.clone();
       let authorization_code: String = query_params.code.clone();
-      // TODO: state
+      // TODO: verify that state matches expected
       cx.spawn(async move {
         let result: Result<
           CoreTokenResponse,
