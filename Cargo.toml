@@ -21,6 +21,7 @@ dioxus-fullstack = { version = "=0.4.3", optional = true }
 dioxus-router = "=0.4.3"
 dioxus-web = "=0.4.3"
 form_urlencoded = "1.2.1"
+gloo-storage = "0.3.0"
 log = "0.4.20"
 oauth2 = "4.4.2"
 openidconnect = "3.4.0"

@@ -9,63 +9,53 @@ use ::openidconnect::core::CoreClient;
 use ::openidconnect::ClientId;
 use ::web_sys::{window, Window};
 
-mod constants;
+pub mod constants;
 pub mod errors;
 pub mod oidc;
 pub mod props;
 
 #[allow(non_snake_case)]
 pub fn LoginLogout(cx: Scope) -> Element {
-  let use_state_auth_request_state: &UseState<AuthRequestState> =
-    use_state(cx, || AuthRequestState {
-      auth_request: None,
-    });
-  let _use_state_auth_token_state: &UseState<AuthTokenState> =
-    use_state(cx, || AuthTokenState {
-      id_token: None,
-      refresh_token: None,
-    });
+  use_shared_state_provider(cx, || ClientState::default());
+  let use_state_label: &UseState<i32> = use_state(cx, || 0);
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
   > = use_shared_state::<ClientState>(cx);
-  let use_shared_state_client_state: &UseSharedState<ClientState> =
-    use_shared_state_client_state_option.unwrap();
   use_on_create(cx, || {
-    to_owned![use_state_auth_request_state];
+    if use_shared_state_client_state_option.is_none() {
+      return initialize_oidc_client(None);
+    }
+    let use_shared_state_client_state: &UseSharedState<ClientState> =
+      use_shared_state_client_state_option.unwrap();
     to_owned![use_shared_state_client_state];
-    initialize_oidc_client(
-      use_state_auth_request_state,
-      use_shared_state_client_state,
-    )
+    return initialize_oidc_client(Some(use_shared_state_client_state));
   });
   render! {
   div {
     class: "app-login-logout",
     button {
-      // disabled: use_state_auth_request_state.auth_request.is_none(),
-      onclick: move |_event| on_click_login(use_state_auth_request_state.clone()),
+      onclick: move |_event| on_click_login(use_shared_state_client_state_option, use_state_label),
       r#type: "button",
-      "Login"
+      "Login {use_state_label}"
     }
   }
   }
 }
 
 async fn initialize_oidc_client(
-  use_state_auth_request_state: UseState<AuthRequestState>,
-  use_shared_state_client_state: UseSharedState<ClientState>,
+  use_shared_state_client_state_option: Option<UseSharedState<ClientState>>
 ) {
+  if use_shared_state_client_state_option.is_none() {
+    return;
+  }
+  let use_shared_state_client_state: UseSharedState<ClientState> =
+    use_shared_state_client_state_option.unwrap();
   {
-    let client_state_ref: Ref<'_, ClientState> =
-      use_shared_state_client_state.read();
-    let client_props_option_ref: &Option<ClientProps> =
-      &client_state_ref.oidc_client;
-    let client_props_option: Option<&ClientProps> =
-      client_props_option_ref.as_ref();
-    if client_props_option.is_some() {
-      log::info!("Client properties loaded from shared state.");
-      let client_props: &ClientProps = client_props_option.as_ref().unwrap();
-      log::info!("{client_props:?}");
+    if read_client_props_from_shared_state(
+      use_shared_state_client_state.clone(),
+    )
+    .is_some()
+    {
       return;
     }
   }
@@ -89,27 +79,57 @@ async fn initialize_oidc_client(
     use_shared_state_client_state.write();
   *client_state_ref_mut = client_state;
   log::info!("Client properties saved to shared state.");
-  let auth_request: AuthRequest = authorize_url(client.clone());
-  let auth_request_state = AuthRequestState {
-    auth_request: Some(auth_request.clone()),
-  };
-  use_state_auth_request_state.set(auth_request_state);
 }
 
-fn on_click_login(use_state_auth_request_state: UseState<AuthRequestState>) {
+fn on_click_login(
+  use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
+  use_state_label: &UseState<i32>,
+) {
   log::info!("Login clicked.");
-  let auth_request_ref_option: Option<&AuthRequest> =
-    use_state_auth_request_state.auth_request.as_ref();
-  if auth_request_ref_option.is_none() {
+  use_state_label.set(1);
+  if use_shared_state_client_state_option.is_none() {
+    use_state_label.set(2);
     return;
   }
-  let auth_request_ref: &AuthRequest = auth_request_ref_option.unwrap();
-  let authorize_url_str: &str = auth_request_ref.authorize_url.as_str();
-  log::info!("URL: {authorize_url_str}");
+  use_state_label.set(3);
+  let use_shared_state_client_state: &UseSharedState<ClientState> =
+    use_shared_state_client_state_option.unwrap();
+  let client_props_option: Option<ClientProps> =
+    read_client_props_from_shared_state(use_shared_state_client_state.clone());
+  if client_props_option.is_none() {
+    use_state_label.set(4);
+    return;
+  }
+  use_state_label.set(5);
+  let client_props: ClientProps = client_props_option.unwrap();
+  let client: CoreClient = client_props.client;
+  let auth_request: AuthRequest = authorize_url(client);
+  let authorize_url_str: &str = auth_request.authorize_url.as_str();
+  log::info!("on_click_login() Authorize URL: {authorize_url_str}");
   let window_option: Option<Window> = window();
   if window_option.is_none() {
+    use_state_label.set(6);
     return;
   }
+  use_state_label.set(7);
   let window: Window = window_option.unwrap();
   let _result = window.open_with_url_and_target(authorize_url_str, "_self");
+}
+
+fn read_client_props_from_shared_state(
+  use_shared_state_client_state: UseSharedState<ClientState>
+) -> Option<ClientProps> {
+  let client_state_ref: Ref<'_, ClientState> =
+    use_shared_state_client_state.read();
+  let client_props_option_ref: &Option<ClientProps> =
+    &client_state_ref.oidc_client;
+  let client_props_option: Option<&ClientProps> =
+    client_props_option_ref.as_ref();
+  if client_props_option.is_none() {
+    return None;
+  }
+  log::info!("Client properties loaded from shared state.");
+  let client_props: &ClientProps = client_props_option.as_ref().unwrap();
+  log::info!("{client_props:?}");
+  Some(client_props_option.unwrap().clone())
 }

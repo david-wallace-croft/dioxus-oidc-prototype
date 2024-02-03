@@ -1,12 +1,14 @@
+use super::login_logout::constants;
 use super::login_logout::oidc::ClientState;
 use super::login_logout::props::client::ClientProps;
 use ::dioxus::prelude::*;
 use ::dioxus_router::routable::FromQuery;
 use ::form_urlencoded::Parse;
+use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
+use ::openidconnect::core::CoreTokenResponse;
 use ::serde::{Deserialize, Serialize};
 use ::std::borrow::Cow;
 use ::std::fmt::{self, Display, Formatter};
-use openidconnect::core::CoreTokenResponse;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CallbackQuerySegments {
@@ -49,6 +51,30 @@ pub fn Callback(
   cx: Scope,
   query_params: CallbackQuerySegments,
 ) -> Element {
+  let use_shared_state_client_state_option: Option<
+    &UseSharedState<ClientState>,
+  > = use_shared_state::<ClientState>(cx);
+  // TODO: Just using the shared state as a hack
+  if use_shared_state_client_state_option.is_none() {
+    return render! {
+      "test123"
+    };
+  }
+  let result: Result<String, StorageError> =
+    SessionStorage::get(constants::STORAGE_KEY_PKCE_VERIFIER);
+  if result.is_err() {
+    let storage_error: StorageError = result.err().unwrap();
+    return render! {
+      p {
+      "Unable to retrieve the PKCE verifier from storage:"
+      }
+      p {
+      "{storage_error}"
+      }
+    };
+  }
+  let pkce_verifier: String = result.unwrap();
+  log::info!("Callback() pkce_verifier: {pkce_verifier:?}");
   // TODO: retrieve client state from local storage
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
@@ -74,8 +100,9 @@ pub fn Callback(
           CoreTokenResponse,
           super::login_logout::errors::Error,
         > = super::login_logout::oidc::token_response(
-          &oidc_client,
           authorization_code,
+          &oidc_client,
+          pkce_verifier,
         )
         .await;
         match result {

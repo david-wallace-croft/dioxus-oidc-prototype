@@ -1,5 +1,7 @@
+use super::constants;
 use super::props::client::ClientProps;
-use ::oauth2::{PkceCodeChallenge, PkceCodeVerifier};
+use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
+use ::oauth2::{CodeTokenRequest, PkceCodeChallenge, PkceCodeVerifier};
 use ::openidconnect::{
   core::{
     CoreClient, CoreErrorResponseType, CoreIdToken, CoreResponseType,
@@ -12,14 +14,14 @@ use ::openidconnect::{
   RedirectUrl, RefreshToken, RequestTokenError, StandardErrorResponse,
 };
 use ::serde::{Deserialize, Serialize};
-use oauth2::CodeTokenRequest;
 
 #[derive(Clone, Debug, Default)]
 pub struct ClientState {
   pub oidc_client: Option<ClientProps>,
 }
 
-/// State that holds the nonce and authorization url and the nonce generated to log in an user
+/// State that holds the nonce and authorization url and the nonce generated to
+/// log in an user
 #[derive(Clone, Deserialize, Serialize, Default)]
 pub struct AuthRequestState {
   pub auth_request: Option<AuthRequest>,
@@ -52,8 +54,17 @@ pub fn email(
 }
 
 pub fn authorize_url(client: CoreClient) -> AuthRequest {
-  let (pkce_challenge, _pkce_verifier): (PkceCodeChallenge, PkceCodeVerifier) =
+  let (pkce_challenge, pkce_verifier): (PkceCodeChallenge, PkceCodeVerifier) =
     PkceCodeChallenge::new_random_sha256();
+  let pkce_verifier_secret: &str = pkce_verifier.secret();
+  log::info!("authorize_url() pkce_verifier: {pkce_verifier_secret}");
+  let result: Result<(), StorageError> =
+    SessionStorage::set(constants::STORAGE_KEY_PKCE_VERIFIER, &pkce_verifier);
+  if result.is_err() {
+    let storage_error: StorageError = result.err().unwrap();
+    log::error!("{storage_error}");
+  };
+  // TODO: What about the csrf state?
   let (authorize_url, _csrf_state, nonce) = client
     .authorize_url(
       AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
@@ -65,7 +76,6 @@ pub fn authorize_url(client: CoreClient) -> AuthRequest {
     // .add_scope(openidconnect::Scope::new("profile".to_string()))
     .set_pkce_challenge(pkce_challenge)
     .url();
-  // TODO: save pkce_verifier
   AuthRequest {
     authorize_url: authorize_url.to_string(),
     nonce,
@@ -104,17 +114,17 @@ pub async fn init_oidc_client(
 }
 
 pub async fn token_response(
-  oidc_client: &CoreClient,
   authorization_code_string: String,
+  client: &CoreClient,
+  pkce_verifier_string: String,
 ) -> Result<CoreTokenResponse, super::errors::Error> {
-  // TODO: Retrieve the pkce_verifier from localstorage
-  let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
   let authorization_code = AuthorizationCode::new(authorization_code_string);
-  let code_token_request: CodeTokenRequest<_, _, _> = oidc_client
+  let pkce_verifier = PkceCodeVerifier::new(pkce_verifier_string);
+  let code_token_request: CodeTokenRequest<_, _, _> = client
     .exchange_code(authorization_code)
+    .set_pkce_verifier(pkce_verifier)
     // TODO: Is this openid scope necessary?
-    .add_extra_param("scope", "openid")
-    .set_pkce_verifier(pkce_verifier);
+    .add_extra_param("scope", "openid");
   let result: CoreTokenResponse =
     code_token_request.request_async(async_http_client).await?;
   Ok(result)
