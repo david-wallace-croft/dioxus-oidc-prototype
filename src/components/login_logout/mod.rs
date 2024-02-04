@@ -5,8 +5,10 @@ use self::oidc::{
 };
 use self::props::client::ClientProps;
 use ::dioxus::prelude::*;
+use ::log::Level;
 use ::openidconnect::core::CoreClient;
 use ::openidconnect::ClientId;
+use ::wasm_logger::Config;
 use ::web_sys::{window, Window};
 
 pub mod constants;
@@ -85,6 +87,8 @@ fn on_click_login(
   use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
   use_state_label: &UseState<i32>,
 ) {
+  let config = Config::new(Level::Debug);
+  ::wasm_logger::init(config);
   log::info!("Login clicked.");
   use_state_label.set(1);
   if use_shared_state_client_state_option.is_none() {
