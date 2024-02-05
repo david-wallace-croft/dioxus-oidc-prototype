@@ -61,6 +61,8 @@ async fn initialize_oidc_client(
       return;
     }
   }
+  let config = Config::new(Level::Debug);
+  ::wasm_logger::init(config);
   log::info!("Initializing OIDC client...");
   let result: Result<(ClientId, CoreClient), Error> = init_oidc_client().await;
   if result.is_err() {
@@ -87,8 +89,6 @@ fn on_click_login(
   use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
   use_state_label: &UseState<i32>,
 ) {
-  let config = Config::new(Level::Debug);
-  ::wasm_logger::init(config);
   log::info!("Login clicked.");
   use_state_label.set(1);
   if use_shared_state_client_state_option.is_none() {

@@ -1,7 +1,8 @@
 #[cfg(feature = "hydrate")]
-use ::dioxus_fullstack::prelude::*;
-#[cfg(feature = "hydrate")]
-use ::dioxus_fullstack::router::{FullstackRouterConfig, RouteWithCfg};
+use ::dioxus_fullstack::{
+  prelude::*,
+  router::{FullstackRouterConfig, RouteWithCfg},
+};
 #[cfg(feature = "hydrate")]
 use ::dioxus_web::Config;
 #[cfg(feature = "hydrate")]
