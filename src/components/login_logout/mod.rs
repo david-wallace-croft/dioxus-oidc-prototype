@@ -35,11 +35,15 @@ pub fn LoginLogout(cx: Scope) -> Element {
   render! {
   div {
     class: "app-login-logout",
-    button {
-      onclick: move |_event| on_click_login(use_shared_state_client_state_option, use_state_label),
-      r#type: "button",
-      "Login {use_state_label}"
-    }
+    onmounted: move |_cx| {
+      let config = Config::new(Level::Debug);
+      ::wasm_logger::init(config);
+    },
+  button {
+    onclick: move |_event| on_click_login(use_shared_state_client_state_option, use_state_label),
+    r#type: "button",
+    "Login {use_state_label}"
+  }
   }
   }
 }
@@ -61,8 +65,6 @@ async fn initialize_oidc_client(
       return;
     }
   }
-  let config = Config::new(Level::Debug);
-  ::wasm_logger::init(config);
   log::info!("Initializing OIDC client...");
   let result: Result<(ClientId, CoreClient), Error> = init_oidc_client().await;
   if result.is_err() {
