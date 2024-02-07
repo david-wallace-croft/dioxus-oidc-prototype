@@ -5,10 +5,8 @@ use self::oidc::{
 };
 use self::props::client::ClientProps;
 use ::dioxus::prelude::*;
-use ::log::Level;
 use ::openidconnect::core::CoreClient;
 use ::openidconnect::ClientId;
-use ::wasm_logger::Config;
 use ::web_sys::{window, Window};
 
 pub mod constants;
@@ -35,10 +33,6 @@ pub fn LoginLogout(cx: Scope) -> Element {
   render! {
   div {
     class: "app-login-logout",
-    onmounted: move |_cx| {
-      let config = Config::new(Level::Debug);
-      ::wasm_logger::init(config);
-    },
   button {
     onclick: move |_event| on_click_login(use_shared_state_client_state_option, use_state_label),
     r#type: "button",

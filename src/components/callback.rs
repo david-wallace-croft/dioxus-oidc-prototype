@@ -5,10 +5,14 @@ use ::dioxus::prelude::*;
 use ::dioxus_router::routable::FromQuery;
 use ::form_urlencoded::Parse;
 use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
+use ::log::Level;
 use ::openidconnect::core::CoreTokenResponse;
 use ::serde::{Deserialize, Serialize};
 use ::std::borrow::Cow;
 use ::std::fmt::{self, Display, Formatter};
+use ::wasm_logger::Config;
+
+struct CallbackInitialized;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CallbackQuerySegments {
@@ -51,6 +55,27 @@ pub fn Callback(
   cx: Scope,
   query_params: CallbackQuerySegments,
 ) -> Element {
+  let use_shared_state_callback_initialized_option: Option<
+    &UseSharedState<CallbackInitialized>,
+  > = use_shared_state::<CallbackInitialized>(cx);
+  if use_shared_state_callback_initialized_option.is_none() {
+    return render! {
+      p {
+        onmounted: move |_cx| {
+          use_shared_state_provider(cx, || CallbackInitialized);
+          let config = Config::new(Level::Debug);
+          ::wasm_logger::init(config);
+        },
+      "Callback not yet initialized."
+      }
+    };
+  }
+  // let config = Config::new(Level::Debug);
+  // ::wasm_logger::init(config);
+  log::info!("Callback()");
+  use_on_create(cx, || async {
+    log::info!("Callback() use_on_create()");
+  });
   let result: Result<String, StorageError> =
     SessionStorage::get(constants::STORAGE_KEY_PKCE_VERIFIER);
   if result.is_err() {
@@ -66,19 +91,19 @@ pub fn Callback(
   }
   let pkce_verifier: String = result.unwrap();
   log::info!("Callback() pkce_verifier: {pkce_verifier:?}");
-  // TODO: retrieve client state from local storage
+  use_shared_state_provider(cx, || ClientState::default());
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
   > = use_shared_state::<ClientState>(cx);
-  if use_shared_state_client_state_option.is_none() {
-    return render! {
-      p {
-      "Client not yet initialized."
-      }
-    };
-  }
   let use_shared_state_client_state: &UseSharedState<ClientState> =
     use_shared_state_client_state_option.unwrap();
+  use_effect(
+    cx,
+    (use_shared_state_client_state),
+    |use_shared_state_client_state| async {
+      log::info!("Inside effect");
+    },
+  );
   let client_state_ref: Ref<'_, ClientState> =
     use_shared_state_client_state.read();
   let client_props_option_ref: &Option<ClientProps> =
@@ -118,6 +143,11 @@ pub fn Callback(
   render! {
   main {
     class: "app-callback",
+    // onmounted: move |_cx| {
+    //   use_shared_state_provider(cx, || CallbackInitialized);
+    //   let config = Config::new(Level::Debug);
+    //   ::wasm_logger::init(config);
+    // },
   h1 {
   "Callback"
   }
