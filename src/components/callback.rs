@@ -51,15 +51,6 @@ pub fn Callback(
   cx: Scope,
   query_params: CallbackQuerySegments,
 ) -> Element {
-  let use_shared_state_client_state_option: Option<
-    &UseSharedState<ClientState>,
-  > = use_shared_state::<ClientState>(cx);
-  // TODO: Just using the shared state as a hack
-  if use_shared_state_client_state_option.is_none() {
-    return render! {
-      "test123"
-    };
-  }
   let result: Result<String, StorageError> =
     SessionStorage::get(constants::STORAGE_KEY_PKCE_VERIFIER);
   if result.is_err() {
@@ -79,6 +70,13 @@ pub fn Callback(
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
   > = use_shared_state::<ClientState>(cx);
+  if use_shared_state_client_state_option.is_none() {
+    return render! {
+      p {
+      "Client not yet initialized."
+      }
+    };
+  }
   let use_shared_state_client_state: &UseSharedState<ClientState> =
     use_shared_state_client_state_option.unwrap();
   let client_state_ref: Ref<'_, ClientState> =

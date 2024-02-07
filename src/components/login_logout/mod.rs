@@ -129,11 +129,11 @@ fn read_client_props_from_shared_state(
     use_shared_state_client_state.read();
   let client_props_option_ref: &Option<ClientProps> =
     &client_state_ref.oidc_client;
-  let client_props_option: Option<&ClientProps> =
-    client_props_option_ref.as_ref();
-  if client_props_option.is_none() {
+  if client_props_option_ref.is_none() {
     return None;
   }
+  let client_props_option: Option<&ClientProps> =
+    client_props_option_ref.as_ref();
   log::info!("Client properties loaded from shared state.");
   let client_props: &ClientProps = client_props_option.unwrap();
   log::info!("{client_props:?}");
