@@ -5,12 +5,10 @@ use ::dioxus::prelude::*;
 use ::dioxus_router::routable::FromQuery;
 use ::form_urlencoded::Parse;
 use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
-use ::log::Level;
 use ::openidconnect::core::CoreTokenResponse;
 use ::serde::{Deserialize, Serialize};
 use ::std::borrow::Cow;
 use ::std::fmt::{self, Display, Formatter};
-use ::wasm_logger::Config;
 
 #[derive(Debug)]
 enum CallbackPhase {
@@ -262,8 +260,6 @@ async fn initialize(
 }
 
 fn on_mounted(cx: Scope<CallbackProps>) {
-  let config = Config::new(Level::Debug);
-  ::wasm_logger::init(config);
   log::info!("Logging initialized in Callback onmounted.");
   let use_shared_state_callback_phase_option: Option<
     &UseSharedState<CallbackPhase>,
