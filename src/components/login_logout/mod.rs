@@ -16,7 +16,6 @@ pub mod props;
 
 #[allow(non_snake_case)]
 pub fn LoginLogout(cx: Scope) -> Element {
-  use_shared_state_provider(cx, || ClientState::default());
   let use_state_label: &UseState<i32> = use_state(cx, || 0);
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
