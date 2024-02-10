@@ -4,7 +4,7 @@ use super::login_logout::props::client::ClientProps;
 use ::dioxus::prelude::*;
 use ::dioxus_router::routable::FromQuery;
 use ::form_urlencoded::Parse;
-use ::gloo_storage::{errors::StorageError, LocalStorage, Storage};
+use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
 use ::openidconnect::core::CoreTokenResponse;
 use ::serde::{Deserialize, Serialize};
 use ::std::borrow::Cow;
@@ -139,7 +139,7 @@ pub fn Callback(
 fn load_pkce_verifier() -> Option<String> {
   log::info!("Loading PKCE verifier from storage...");
   let pkce_verifier_result: Result<String, StorageError> =
-    LocalStorage::get(constants::STORAGE_KEY_PKCE_VERIFIER);
+    SessionStorage::get(constants::STORAGE_KEY_PKCE_VERIFIER);
   match pkce_verifier_result {
     Ok(pkce_verifier) => {
       log::info!("PKCE verifier: {pkce_verifier}");

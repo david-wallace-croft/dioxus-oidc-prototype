@@ -1,6 +1,6 @@
 use super::constants;
 use super::props::client::ClientProps;
-use ::gloo_storage::{errors::StorageError, LocalStorage, Storage};
+use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
 use ::oauth2::{CodeTokenRequest, PkceCodeChallenge, PkceCodeVerifier};
 use ::openidconnect::{
   core::{
@@ -58,9 +58,8 @@ pub fn authorize_url(client: CoreClient) -> AuthRequest {
     PkceCodeChallenge::new_random_sha256();
   let pkce_verifier_secret: &str = pkce_verifier.secret();
   log::info!("authorize_url() pkce_verifier: {pkce_verifier_secret}");
-  // TODO: Can we use SessionStorage?
   let result: Result<(), StorageError> =
-    LocalStorage::set(constants::STORAGE_KEY_PKCE_VERIFIER, &pkce_verifier);
+    SessionStorage::set(constants::STORAGE_KEY_PKCE_VERIFIER, &pkce_verifier);
   if result.is_err() {
     let storage_error: StorageError = result.err().unwrap();
     log::error!("{storage_error}");
