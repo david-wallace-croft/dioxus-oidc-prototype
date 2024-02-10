@@ -120,6 +120,6 @@ fn read_client_props_from_shared_state(
     client_props_option_ref.as_ref();
   log::info!("Client properties loaded from shared state.");
   let client_props: &ClientProps = client_props_option.unwrap();
-  log::info!("{client_props:?}");
+  log::info!("{client_props:#?}");
   Some(client_props.clone())
 }

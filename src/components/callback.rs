@@ -136,23 +136,6 @@ pub fn Callback(
   }
 }
 
-// async fn initialize(
-//   use_shared_state_client_state_option: Option<UseSharedState<ClientState>>
-// ) {
-//   log::info!("Callback initialize()");
-//   if use_shared_state_client_state_option.is_none() {
-//     return;
-//   }
-//   let use_shared_state_client_state: UseSharedState<ClientState> =
-//     use_shared_state_client_state_option.unwrap();
-//   let client_props_option: Option<ClientProps> =
-//     read_client_props_from_shared_state(use_shared_state_client_state);
-//   if client_props_option.is_none() {
-//     return;
-//   }
-//   // log::info!("{client_props_option:?}");
-// }
-
 fn load_pkce_verifier() -> Option<String> {
   log::info!("Loading PKCE verifier from storage...");
   let pkce_verifier_result: Result<String, StorageError> =
@@ -185,7 +168,6 @@ fn read_client_props_from_shared_state(
     client_props_option_ref.as_ref();
   log::info!("Client properties loaded from shared state.");
   let client_props: &ClientProps = client_props_option.unwrap();
-  // log::info!("{client_props:?}");
   Some(client_props.clone())
 }
 
@@ -206,7 +188,7 @@ fn request_token(
       .await;
     match result {
       Ok(token_response) => {
-        log::info!("{token_response:?}");
+        log::info!("{token_response:#?}");
       },
       Err(error) => {
         log::error!("{error:?}");
