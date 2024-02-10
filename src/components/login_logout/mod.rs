@@ -20,18 +20,17 @@ pub fn LoginLogout(cx: Scope) -> Element {
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
   > = use_shared_state::<ClientState>(cx);
-  use_on_create(cx, || {
-    if use_shared_state_client_state_option.is_none() {
-      return initialize_oidc_client(None);
-    }
-    let use_shared_state_client_state: &UseSharedState<ClientState> =
-      use_shared_state_client_state_option.unwrap();
-    to_owned![use_shared_state_client_state];
-    return initialize_oidc_client(Some(use_shared_state_client_state));
-  });
   render! {
   div {
     class: "app-login-logout",
+    onmounted: move |_event| {
+      let use_shared_state_client_state: &UseSharedState<ClientState> =
+        use_shared_state_client_state_option.unwrap();
+      to_owned![use_shared_state_client_state];
+      cx.spawn(async move {
+        initialize_oidc_client(use_shared_state_client_state).await
+      });
+    },
   button {
     onclick: move |_event| on_click_login(use_shared_state_client_state_option, use_state_label),
     r#type: "button",
@@ -42,21 +41,13 @@ pub fn LoginLogout(cx: Scope) -> Element {
 }
 
 async fn initialize_oidc_client(
-  use_shared_state_client_state_option: Option<UseSharedState<ClientState>>
+  use_shared_state_client_state: UseSharedState<ClientState>
 ) {
-  if use_shared_state_client_state_option.is_none() {
-    return;
-  }
-  let use_shared_state_client_state: UseSharedState<ClientState> =
-    use_shared_state_client_state_option.unwrap();
-  {
-    if read_client_props_from_shared_state(
-      use_shared_state_client_state.clone(),
-    )
+  // TODO: Is this still needed?
+  if read_client_props_from_shared_state(use_shared_state_client_state.clone())
     .is_some()
-    {
-      return;
-    }
+  {
+    return;
   }
   log::info!("Initializing OIDC client...");
   let result: Result<(ClientId, CoreClient), Error> = init_oidc_client().await;
