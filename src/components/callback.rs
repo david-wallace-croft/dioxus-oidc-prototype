@@ -117,6 +117,7 @@ pub fn Callback(
     // TODO: verify that state matches expected
     request_token(authorization_code, cx, oidc_client, pkce_verifier);
   }
+  // TODO: use onmounted?
   render! {
   main {
     class: "app-callback",
