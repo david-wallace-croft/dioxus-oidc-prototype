@@ -4,11 +4,12 @@ use super::login_logout::props::client::ClientProps;
 use ::dioxus::prelude::*;
 use ::dioxus_router::routable::FromQuery;
 use ::form_urlencoded::Parse;
-use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
+use ::gloo_storage::{errors::StorageError, LocalStorage, Storage};
 use ::openidconnect::core::CoreTokenResponse;
 use ::serde::{Deserialize, Serialize};
 use ::std::borrow::Cow;
 use ::std::fmt::{self, Display, Formatter};
+use openidconnect::core::CoreClient;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CallbackQuerySegments {
@@ -65,63 +66,56 @@ pub fn Callback(
   let use_shared_state_client_state: &UseSharedState<ClientState> =
     use_shared_state_client_state_option.unwrap();
   to_owned![use_shared_state_client_state];
-  use_effect(
-    cx,
-    &use_shared_state_client_state,
-    |use_shared_state_client_state| {
-      return initialize(Some(use_shared_state_client_state));
-    },
-  );
+  // use_effect(
+  //   cx,
+  //   &use_shared_state_client_state,
+  //   |use_shared_state_client_state| {
+  //     return initialize(Some(use_shared_state_client_state));
+  //   },
+  // );
   let client_props_option: Option<ClientProps> =
     read_client_props_from_shared_state(use_shared_state_client_state);
+  let pkce_verifier_option: Option<String> = if client_props_option.is_some() {
+    load_pkce_verifier()
+  } else {
+    None
+  };
+  let mut ready_to_request_token: bool = true;
+  if query_params.code.is_empty() {
+    log::info!("query_params.code is empty");
+    ready_to_request_token = false;
+  } else {
+    let query_params_code = &query_params.code;
+    log::info!("query_params.code: {query_params_code}");
+  }
+  if query_params.state.is_empty() {
+    log::info!("query_params.state is empty");
+    ready_to_request_token = false;
+  } else {
+    let query_params_state = &query_params.state;
+    log::info!("query_params.state: {query_params_state}");
+  }
   if client_props_option.is_none() {
-    return render! {
-      p {
-      "Client properties uninitialized."
-      }
-    };
+    log::info!("client_props_option is None");
+    ready_to_request_token = false;
+  } else {
+    let client_props: &ClientProps = client_props_option.as_ref().unwrap();
+    log::info!("client_props: {client_props:#?}");
   }
-  log::info!("Client properties retrieved.");
-  let client_props: &ClientProps = client_props_option.as_ref().unwrap();
-  log::info!("{client_props:?}");
-  let result: Result<String, StorageError> =
-    SessionStorage::get(constants::STORAGE_KEY_PKCE_VERIFIER);
-  if result.is_err() {
-    let storage_error: StorageError = result.err().unwrap();
-    return render! {
-      p {
-      "Unable to retrieve the PKCE verifier from storage:"
-      }
-      p {
-      "{storage_error}"
-      }
-    };
+  if pkce_verifier_option.is_none() {
+    log::info!("pkce_verifier_option is None");
+    ready_to_request_token = false;
+  } else {
+    let pkce_verifier: String = pkce_verifier_option.as_ref().unwrap().clone();
+    log::info!("pkce_verifier: {pkce_verifier:?}");
   }
-  let pkce_verifier: String = result.unwrap();
-  log::info!("Callback() pkce_verifier: {pkce_verifier:?}");
-  if !query_params.code.is_empty() && !query_params.state.is_empty() {
-    let oidc_client = client_props.client.clone();
+  if ready_to_request_token {
+    let client_props: &ClientProps = client_props_option.as_ref().unwrap();
+    let oidc_client: CoreClient = client_props.client.clone();
     let authorization_code: String = query_params.code.clone();
+    let pkce_verifier: String = pkce_verifier_option.as_ref().unwrap().clone();
     // TODO: verify that state matches expected
-    cx.spawn(async move {
-      let result: Result<
-        CoreTokenResponse,
-        super::login_logout::errors::Error,
-      > = super::login_logout::oidc::token_response(
-        authorization_code,
-        &oidc_client,
-        pkce_verifier,
-      )
-      .await;
-      match result {
-        Ok(token_response) => {
-          log::info!("{token_response:?}");
-        },
-        Err(error) => {
-          log::error!("{error:?}");
-        },
-      };
-    });
+    request_token(authorization_code, cx, oidc_client, pkce_verifier);
   }
   render! {
   main {
@@ -132,31 +126,54 @@ pub fn Callback(
   p {
   "query_params: {query_params:?}"
   }
+  // p {
+  // "pkce_verifier_option: {pkce_verifier_option:?}"
+  // }
+  // p {
+  // "client_props_option: {client_props_option:?}"
+  // }
   }
   }
 }
 
-async fn initialize(
-  use_shared_state_client_state_option: Option<UseSharedState<ClientState>>
-) {
-  log::info!("Callback initialize()");
-  if use_shared_state_client_state_option.is_none() {
-    return;
-  }
-  let use_shared_state_client_state: UseSharedState<ClientState> =
-    use_shared_state_client_state_option.unwrap();
-  let client_props_option: Option<ClientProps> =
-    read_client_props_from_shared_state(use_shared_state_client_state);
-  if client_props_option.is_none() {
-    return;
-  }
-  log::info!("{client_props_option:?}");
+// async fn initialize(
+//   use_shared_state_client_state_option: Option<UseSharedState<ClientState>>
+// ) {
+//   log::info!("Callback initialize()");
+//   if use_shared_state_client_state_option.is_none() {
+//     return;
+//   }
+//   let use_shared_state_client_state: UseSharedState<ClientState> =
+//     use_shared_state_client_state_option.unwrap();
+//   let client_props_option: Option<ClientProps> =
+//     read_client_props_from_shared_state(use_shared_state_client_state);
+//   if client_props_option.is_none() {
+//     return;
+//   }
+//   // log::info!("{client_props_option:?}");
+// }
+
+fn load_pkce_verifier() -> Option<String> {
+  log::info!("Loading PKCE verifier from storage...");
+  let pkce_verifier_result: Result<String, StorageError> =
+    LocalStorage::get(constants::STORAGE_KEY_PKCE_VERIFIER);
+  match pkce_verifier_result {
+    Ok(pkce_verifier) => {
+      log::info!("PKCE verifier: {pkce_verifier}");
+      return Some(pkce_verifier);
+    },
+    Err(error) => {
+      log::error!("Error: {error}");
+    },
+  };
+  None
 }
 
 // TODO: consolidate copy and paste of this function from login-logout component
 fn read_client_props_from_shared_state(
   use_shared_state_client_state: UseSharedState<ClientState>
 ) -> Option<ClientProps> {
+  log::info!("Reading client properties from shared state...");
   let client_state_ref: Ref<'_, ClientState> =
     use_shared_state_client_state.read();
   let client_props_option_ref: &Option<ClientProps> =
@@ -170,4 +187,30 @@ fn read_client_props_from_shared_state(
   let client_props: &ClientProps = client_props_option.unwrap();
   // log::info!("{client_props:?}");
   Some(client_props.clone())
+}
+
+fn request_token(
+  authorization_code: String,
+  cx: Scope<CallbackProps>,
+  oidc_client: CoreClient,
+  pkce_verifier: String,
+) {
+  log::info!("Requesting token...");
+  cx.spawn(async move {
+    let result: Result<CoreTokenResponse, super::login_logout::errors::Error> =
+      super::login_logout::oidc::token_response(
+        authorization_code,
+        &oidc_client,
+        pkce_verifier,
+      )
+      .await;
+    match result {
+      Ok(token_response) => {
+        log::info!("{token_response:?}");
+      },
+      Err(error) => {
+        log::error!("{error:?}");
+      },
+    };
+  });
 }

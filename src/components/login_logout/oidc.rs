@@ -1,6 +1,6 @@
 use super::constants;
 use super::props::client::ClientProps;
-use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
+use ::gloo_storage::{errors::StorageError, LocalStorage, Storage};
 use ::oauth2::{CodeTokenRequest, PkceCodeChallenge, PkceCodeVerifier};
 use ::openidconnect::{
   core::{
@@ -59,7 +59,7 @@ pub fn authorize_url(client: CoreClient) -> AuthRequest {
   let pkce_verifier_secret: &str = pkce_verifier.secret();
   log::info!("authorize_url() pkce_verifier: {pkce_verifier_secret}");
   let result: Result<(), StorageError> =
-    SessionStorage::set(constants::STORAGE_KEY_PKCE_VERIFIER, &pkce_verifier);
+    LocalStorage::set(constants::STORAGE_KEY_PKCE_VERIFIER, &pkce_verifier);
   if result.is_err() {
     let storage_error: StorageError = result.err().unwrap();
     log::error!("{storage_error}");
