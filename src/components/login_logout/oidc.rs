@@ -20,6 +20,11 @@ pub struct ClientState {
   pub oidc_client: Option<ClientProps>,
 }
 
+#[derive(Debug, Default)]
+pub struct PkceState {
+  pub pkce_verifier_option: Option<String>,
+}
+
 /// State that holds the nonce and authorization url and the nonce generated to
 /// log in an user
 #[derive(Clone, Deserialize, Serialize, Default)]

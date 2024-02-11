@@ -1,5 +1,5 @@
 use super::login_logout::constants;
-use super::login_logout::oidc::ClientState;
+use super::login_logout::oidc::{ClientState, PkceState};
 use super::login_logout::props::client::ClientProps;
 use ::dioxus::prelude::*;
 use ::dioxus_router::routable::FromQuery;
@@ -56,6 +56,7 @@ pub fn Callback(
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
   > = use_shared_state::<ClientState>(cx);
+  // TODO: Is this possible?
   if use_shared_state_client_state_option.is_none() {
     return render! {
       p {
@@ -75,11 +76,8 @@ pub fn Callback(
   // );
   let client_props_option: Option<ClientProps> =
     read_client_props_from_shared_state(use_shared_state_client_state);
-  let pkce_verifier_option: Option<String> = if client_props_option.is_some() {
-    load_pkce_verifier()
-  } else {
-    None
-  };
+  let pkce_verifier_option: Option<String> =
+    read_or_load_pkce_verifier(&client_props_option, cx);
   let mut ready_to_request_token: bool = true;
   if query_params.code.is_empty() {
     log::info!("query_params.code is empty");
@@ -135,6 +133,39 @@ pub fn Callback(
   // }
   }
   }
+}
+
+fn read_or_load_pkce_verifier(
+  client_props_option: &Option<ClientProps>,
+  cx: Scope<CallbackProps>,
+) -> Option<String> {
+  if client_props_option.is_none() {
+    return None;
+  }
+  let use_shared_state_pkce_state_option: Option<&UseSharedState<PkceState>> =
+    use_shared_state::<PkceState>(cx);
+  if use_shared_state_pkce_state_option.is_none() {
+    // TODO: Can this happen?
+    return None;
+  }
+  let use_shared_state_pkce_state: &UseSharedState<PkceState> =
+    use_shared_state_pkce_state_option.unwrap();
+  {
+    let pkce_state_ref: Ref<'_, PkceState> = use_shared_state_pkce_state.read();
+    let pkce_verifier_option: &Option<String> =
+      &pkce_state_ref.pkce_verifier_option;
+    if pkce_verifier_option.is_some() {
+      return pkce_verifier_option.clone();
+    }
+  }
+  let pkce_verifier_option = load_pkce_verifier();
+  if pkce_verifier_option.is_none() {
+    return None;
+  }
+  *use_shared_state_pkce_state.write() = PkceState {
+    pkce_verifier_option: pkce_verifier_option.clone(),
+  };
+  pkce_verifier_option
 }
 
 fn load_pkce_verifier() -> Option<String> {
