@@ -139,15 +139,11 @@ fn read_or_load_pkce_verifier(
   client_props_option: &Option<ClientProps>,
   cx: Scope<CallbackProps>,
 ) -> Option<String> {
-  if client_props_option.is_none() {
-    return None;
-  }
+  client_props_option.as_ref()?;
   let use_shared_state_pkce_state_option: Option<&UseSharedState<PkceState>> =
     use_shared_state::<PkceState>(cx);
-  if use_shared_state_pkce_state_option.is_none() {
-    // TODO: Can this happen?
-    return None;
-  }
+  // TODO: Can this ever be None?
+  use_shared_state_pkce_state_option?;
   let use_shared_state_pkce_state: &UseSharedState<PkceState> =
     use_shared_state_pkce_state_option.unwrap();
   {
@@ -159,9 +155,7 @@ fn read_or_load_pkce_verifier(
     }
   }
   let pkce_verifier_option = load_pkce_verifier();
-  if pkce_verifier_option.is_none() {
-    return None;
-  }
+  pkce_verifier_option.as_ref()?;
   *use_shared_state_pkce_state.write() = PkceState {
     pkce_verifier_option: pkce_verifier_option.clone(),
   };
@@ -210,6 +204,7 @@ fn request_token(
   pkce_verifier: String,
 ) {
   log::info!("Requesting token...");
+  // TODO: clear the pkce verifier from session storage
   cx.spawn(async move {
     let result: Result<CoreTokenResponse, super::login_logout::errors::Error> =
       super::login_logout::oidc::token_response(

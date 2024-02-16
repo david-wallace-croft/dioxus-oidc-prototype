@@ -1,8 +1,5 @@
 use self::errors::Error;
-use self::oidc::{
-  authorize_url, init_oidc_client, AuthRequest, AuthRequestState,
-  AuthTokenState, ClientState,
-};
+use self::oidc::{authorize_url, init_oidc_client, AuthRequest, ClientState};
 use self::props::client::ClientProps;
 use ::dioxus::prelude::*;
 use ::openidconnect::core::CoreClient;
