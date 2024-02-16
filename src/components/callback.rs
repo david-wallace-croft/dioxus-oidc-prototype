@@ -154,7 +154,7 @@ fn read_or_load_pkce_verifier(
       return pkce_verifier_option.clone();
     }
   }
-  let pkce_verifier_option = load_pkce_verifier();
+  let pkce_verifier_option: Option<String> = load_pkce_verifier();
   pkce_verifier_option.as_ref()?;
   *use_shared_state_pkce_state.write() = PkceState {
     pkce_verifier_option: pkce_verifier_option.clone(),
