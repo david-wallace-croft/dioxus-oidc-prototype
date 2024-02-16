@@ -28,20 +28,20 @@ impl Display for CallbackQuerySegments {
 
 impl FromQuery for CallbackQuerySegments {
   fn from_query(query: &str) -> Self {
-    let mut code_option: Option<String> = None;
-    let mut state_option: Option<String> = None;
+    let mut code = String::default();
+    let mut state = String::default();
     let input: &[u8] = query.as_bytes();
     let pairs: Parse<'_> = ::form_urlencoded::parse(input);
     pairs.for_each(|(key, value): (Cow<'_, str>, Cow<'_, str>)| {
       if key == "code" {
-        code_option = Some(value.clone().into());
+        code = value.into();
       } else if key == "state" {
-        state_option = Some(value.clone().into());
+        state = value.into();
       }
     });
     Self {
-      code: code_option.unwrap_or_default(),
-      state: state_option.unwrap_or_default(),
+      code,
+      state,
     }
   }
 }
