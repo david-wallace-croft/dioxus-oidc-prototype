@@ -5,11 +5,16 @@ use ::dioxus::prelude::*;
 use ::dioxus_router::routable::FromQuery;
 use ::form_urlencoded::Parse;
 use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
-use ::openidconnect::core::CoreTokenResponse;
+use ::openidconnect::core::{CoreClient, CoreTokenResponse};
 use ::serde::{Deserialize, Serialize};
 use ::std::borrow::Cow;
 use ::std::fmt::{self, Display, Formatter};
-use openidconnect::core::CoreClient;
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CallbackState {
+  pub code_option: Option<String>,
+  pub state_option: Option<String>,
+}
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CallbackQuerySegments {
@@ -23,6 +28,29 @@ impl Display for CallbackQuerySegments {
     formatter: &mut Formatter<'_>,
   ) -> fmt::Result {
     write!(formatter, "code={}&state={}", self.code, self.state)
+  }
+}
+
+impl From<&CallbackQuerySegments> for CallbackState {
+  fn from(callback_query_segments: &CallbackQuerySegments) -> Self {
+    let CallbackQuerySegments {
+      code,
+      state,
+    } = callback_query_segments;
+    let code_option = if code.is_empty() {
+      None
+    } else {
+      Some(code.clone())
+    };
+    let state_option = if state.is_empty() {
+      None
+    } else {
+      Some(state.clone())
+    };
+    Self {
+      code_option,
+      state_option,
+    }
   }
 }
 
@@ -53,6 +81,7 @@ pub fn Callback(
   query_params: CallbackQuerySegments,
 ) -> Element {
   log::info!("Callback");
+  let callback_state: CallbackState = update_callback_state(cx, query_params);
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
   > = use_shared_state::<ClientState>(cx);
@@ -78,39 +107,13 @@ pub fn Callback(
     read_client_props_from_shared_state(use_shared_state_client_state);
   let pkce_verifier_option: Option<String> =
     read_or_load_pkce_verifier(&client_props_option, cx);
-  let mut ready_to_request_token: bool = true;
-  if query_params.code.is_empty() {
-    log::info!("query_params.code is empty");
-    ready_to_request_token = false;
-  } else {
-    let query_params_code = &query_params.code;
-    log::info!("query_params.code: {query_params_code}");
-  }
-  if query_params.state.is_empty() {
-    log::info!("query_params.state is empty");
-    ready_to_request_token = false;
-  } else {
-    let query_params_state = &query_params.state;
-    log::info!("query_params.state: {query_params_state}");
-  }
-  if client_props_option.is_none() {
-    log::info!("client_props_option is None");
-    ready_to_request_token = false;
-  } else {
-    let client_props: &ClientProps = client_props_option.as_ref().unwrap();
-    log::info!("client_props: {client_props:#?}");
-  }
-  if pkce_verifier_option.is_none() {
-    log::info!("pkce_verifier_option is None");
-    ready_to_request_token = false;
-  } else {
-    let pkce_verifier: String = pkce_verifier_option.as_ref().unwrap().clone();
-    log::info!("pkce_verifier: {pkce_verifier:?}");
-  }
+  let ready_to_request_token: bool = validate_callback_state(&callback_state)
+    && validate_client_props(client_props_option.as_ref())
+    && validate_pkce_verifier(pkce_verifier_option.as_ref());
   if ready_to_request_token {
     let client_props: &ClientProps = client_props_option.as_ref().unwrap();
     let oidc_client: CoreClient = client_props.client.clone();
-    let authorization_code: String = query_params.code.clone();
+    let authorization_code: String = callback_state.code_option.unwrap();
     let pkce_verifier: String = pkce_verifier_option.as_ref().unwrap().clone();
     // TODO: verify that state matches expected
     request_token(authorization_code, cx, oidc_client, pkce_verifier);
@@ -133,33 +136,6 @@ pub fn Callback(
   // }
   }
   }
-}
-
-fn read_or_load_pkce_verifier(
-  client_props_option: &Option<ClientProps>,
-  cx: Scope<CallbackProps>,
-) -> Option<String> {
-  client_props_option.as_ref()?;
-  let use_shared_state_pkce_state_option: Option<&UseSharedState<PkceState>> =
-    use_shared_state::<PkceState>(cx);
-  // TODO: Can this ever be None?
-  use_shared_state_pkce_state_option?;
-  let use_shared_state_pkce_state: &UseSharedState<PkceState> =
-    use_shared_state_pkce_state_option.unwrap();
-  {
-    let pkce_state_ref: Ref<'_, PkceState> = use_shared_state_pkce_state.read();
-    let pkce_verifier_option: &Option<String> =
-      &pkce_state_ref.pkce_verifier_option;
-    if pkce_verifier_option.is_some() {
-      return pkce_verifier_option.clone();
-    }
-  }
-  let pkce_verifier_option: Option<String> = load_pkce_verifier();
-  pkce_verifier_option.as_ref()?;
-  *use_shared_state_pkce_state.write() = PkceState {
-    pkce_verifier_option: pkce_verifier_option.clone(),
-  };
-  pkce_verifier_option
 }
 
 fn load_pkce_verifier() -> Option<String> {
@@ -197,6 +173,33 @@ fn read_client_props_from_shared_state(
   Some(client_props.clone())
 }
 
+fn read_or_load_pkce_verifier(
+  client_props_option: &Option<ClientProps>,
+  cx: Scope<CallbackProps>,
+) -> Option<String> {
+  client_props_option.as_ref()?;
+  let use_shared_state_pkce_state_option: Option<&UseSharedState<PkceState>> =
+    use_shared_state::<PkceState>(cx);
+  // TODO: Can this ever be None?
+  use_shared_state_pkce_state_option?;
+  let use_shared_state_pkce_state: &UseSharedState<PkceState> =
+    use_shared_state_pkce_state_option.unwrap();
+  {
+    let pkce_state_ref: Ref<'_, PkceState> = use_shared_state_pkce_state.read();
+    let pkce_verifier_option: &Option<String> =
+      &pkce_state_ref.pkce_verifier_option;
+    if pkce_verifier_option.is_some() {
+      return pkce_verifier_option.clone();
+    }
+  }
+  let pkce_verifier_option: Option<String> = load_pkce_verifier();
+  pkce_verifier_option.as_ref()?;
+  *use_shared_state_pkce_state.write() = PkceState {
+    pkce_verifier_option: pkce_verifier_option.clone(),
+  };
+  pkce_verifier_option
+}
+
 fn request_token(
   authorization_code: String,
   cx: Scope<CallbackProps>,
@@ -222,4 +225,68 @@ fn request_token(
       },
     };
   });
+}
+
+fn update_callback_state(
+  cx: Scope<CallbackProps>,
+  query_params: &CallbackQuerySegments,
+) -> CallbackState {
+  let use_shared_state_callback_state_option: Option<
+    &UseSharedState<CallbackState>,
+  > = use_shared_state::<CallbackState>(cx);
+  // TODO: Is this possible?
+  if use_shared_state_callback_state_option.is_none() {
+    return CallbackState::default();
+  }
+  let use_shared_state_callback_state: &UseSharedState<CallbackState> =
+    use_shared_state_callback_state_option.unwrap();
+  let new_callback_state: CallbackState = query_params.into();
+  if *use_shared_state_callback_state.read() != new_callback_state {
+    *use_shared_state_callback_state.write() = new_callback_state.clone();
+  }
+  new_callback_state
+}
+
+// TODO: Validator trait
+fn validate_callback_state(callback_state: &CallbackState) -> bool {
+  let mut valid = true;
+  let CallbackState {
+    code_option,
+    state_option,
+  } = callback_state;
+  if code_option.is_none() {
+    log::info!("Invalid callback code");
+    valid = false;
+  } else {
+    let code: String = code_option.clone().unwrap();
+    log::info!("Callback code: {code}");
+  }
+  if state_option.is_none() {
+    log::info!("Invalid callback state");
+    valid = false;
+  } else {
+    let state: String = state_option.clone().unwrap();
+    log::info!("Callback state: {state}");
+  }
+  valid
+}
+
+fn validate_client_props(client_props_option: Option<&ClientProps>) -> bool {
+  if client_props_option.is_none() {
+    log::info!("Invalid client properties");
+    return false;
+  }
+  let client_props: &ClientProps = client_props_option.unwrap();
+  log::info!("Client properties: {client_props:#?}");
+  true
+}
+
+fn validate_pkce_verifier(pkce_verifier_option: Option<&String>) -> bool {
+  if pkce_verifier_option.is_none() {
+    log::info!("Invalid PKCE verifier");
+    return false;
+  }
+  let pkce_verifier: &String = pkce_verifier_option.unwrap();
+  log::info!("PKCE verifier: {pkce_verifier:?}");
+  true
 }
