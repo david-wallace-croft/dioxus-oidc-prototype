@@ -1,5 +1,5 @@
 use super::super::route::Route;
-use super::callback::CallbackState;
+use super::callback::callback_state::CallbackState;
 use super::header::Header;
 use super::login_logout::oidc::{ClientState, PkceState};
 use ::dioxus::prelude::*;

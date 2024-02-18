@@ -1,5 +1,5 @@
+use super::components::callback::callback_query_segments::CallbackQuerySegments;
 use super::components::callback::Callback;
-use super::components::callback::CallbackQuerySegments;
 use super::components::colophon::Colophon;
 use super::components::home::Home;
 use super::components::page_not_found::PageNotFound;

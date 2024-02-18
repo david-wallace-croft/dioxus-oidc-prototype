@@ -1,6 +1,5 @@
-use crate::components::callback::CallbackQuerySegments;
-
 use super::super::route::Route;
+use super::callback::callback_query_segments::CallbackQuerySegments;
 use ::dioxus::prelude::*;
 use ::dioxus_router::prelude::*;
 

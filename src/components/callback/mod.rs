@@ -1,78 +1,17 @@
+use self::callback_query_segments::CallbackQuerySegments;
+use self::callback_state::CallbackState;
+use super::super::route::Route;
 use super::login_logout::constants;
 use super::login_logout::oidc::{ClientState, PkceState};
 use super::login_logout::props::client::ClientProps;
+use ::com_croftsoft_lib_role::Validator;
 use ::dioxus::prelude::*;
-use ::dioxus_router::routable::FromQuery;
-use ::form_urlencoded::Parse;
+use ::dioxus_router::prelude::*;
 use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
 use ::openidconnect::core::{CoreClient, CoreTokenResponse};
-use ::serde::{Deserialize, Serialize};
-use ::std::borrow::Cow;
-use ::std::fmt::{self, Display, Formatter};
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CallbackState {
-  pub code_option: Option<String>,
-  pub state_option: Option<String>,
-}
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct CallbackQuerySegments {
-  pub code: String,
-  pub state: String,
-}
-
-impl Display for CallbackQuerySegments {
-  fn fmt(
-    &self,
-    formatter: &mut Formatter<'_>,
-  ) -> fmt::Result {
-    write!(formatter, "code={}&state={}", self.code, self.state)
-  }
-}
-
-impl From<&CallbackQuerySegments> for CallbackState {
-  fn from(callback_query_segments: &CallbackQuerySegments) -> Self {
-    let CallbackQuerySegments {
-      code,
-      state,
-    } = callback_query_segments;
-    let code_option = if code.is_empty() {
-      None
-    } else {
-      Some(code.clone())
-    };
-    let state_option = if state.is_empty() {
-      None
-    } else {
-      Some(state.clone())
-    };
-    Self {
-      code_option,
-      state_option,
-    }
-  }
-}
-
-impl FromQuery for CallbackQuerySegments {
-  fn from_query(query: &str) -> Self {
-    let mut code = String::default();
-    let mut state = String::default();
-    let input: &[u8] = query.as_bytes();
-    let pairs: Parse<'_> = ::form_urlencoded::parse(input);
-    pairs.for_each(|(key, value): (Cow<'_, str>, Cow<'_, str>)| {
-      if key == "code" {
-        code = value.into();
-      } else if key == "state" {
-        state = value.into();
-      }
-    });
-    Self {
-      code,
-      state,
-    }
-  }
-}
+pub mod callback_query_segments;
+pub mod callback_state;
 
 #[allow(non_snake_case)]
 #[component]
@@ -81,10 +20,18 @@ pub fn Callback(
   query_params: CallbackQuerySegments,
 ) -> Element {
   log::info!("Callback");
+
   let callback_state: CallbackState = update_callback_state(cx, query_params);
+
+  // if callback_state.validate() {
+  //   let nav = use_navigator(cx);
+  //   nav.push(Route::Home {});
+  // }
+
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
   > = use_shared_state::<ClientState>(cx);
+
   // TODO: Is this possible?
   if use_shared_state_client_state_option.is_none() {
     return render! {
@@ -93,9 +40,12 @@ pub fn Callback(
       }
     };
   }
+
   let use_shared_state_client_state: &UseSharedState<ClientState> =
     use_shared_state_client_state_option.unwrap();
+
   to_owned![use_shared_state_client_state];
+
   // use_effect(
   //   cx,
   //   &use_shared_state_client_state,
@@ -103,13 +53,17 @@ pub fn Callback(
   //     return initialize(Some(use_shared_state_client_state));
   //   },
   // );
+
   let client_props_option: Option<ClientProps> =
     read_client_props_from_shared_state(use_shared_state_client_state);
+
   let pkce_verifier_option: Option<String> =
     read_or_load_pkce_verifier(&client_props_option, cx);
-  let ready_to_request_token: bool = validate_callback_state(&callback_state)
+
+  let ready_to_request_token: bool = callback_state.validate()
     && validate_client_props(client_props_option.as_ref())
     && validate_pkce_verifier(pkce_verifier_option.as_ref());
+
   if ready_to_request_token {
     let client_props: &ClientProps = client_props_option.as_ref().unwrap();
     let oidc_client: CoreClient = client_props.client.clone();
@@ -128,12 +82,6 @@ pub fn Callback(
   p {
   "query_params: {query_params:?}"
   }
-  // p {
-  // "pkce_verifier_option: {pkce_verifier_option:?}"
-  // }
-  // p {
-  // "client_props_option: {client_props_option:?}"
-  // }
   }
   }
 }
@@ -245,30 +193,6 @@ fn update_callback_state(
     *use_shared_state_callback_state.write() = new_callback_state.clone();
   }
   new_callback_state
-}
-
-// TODO: Validator trait
-fn validate_callback_state(callback_state: &CallbackState) -> bool {
-  let mut valid = true;
-  let CallbackState {
-    code_option,
-    state_option,
-  } = callback_state;
-  if code_option.is_none() {
-    log::info!("Invalid callback code");
-    valid = false;
-  } else {
-    let code: String = code_option.clone().unwrap();
-    log::info!("Callback code: {code}");
-  }
-  if state_option.is_none() {
-    log::info!("Invalid callback state");
-    valid = false;
-  } else {
-    let state: String = state_option.clone().unwrap();
-    log::info!("Callback state: {state}");
-  }
-  valid
 }
 
 fn validate_client_props(client_props_option: Option<&ClientProps>) -> bool {
