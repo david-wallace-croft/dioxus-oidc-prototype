@@ -341,9 +341,9 @@ checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
 
 [[package]]
 name = "com-croftsoft-lib-role"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b64697bf58727965734c7542c1f17fc423074647d07f19ccb59c468c1aff7da"
+checksum = "f0cfe16a898d32eb894dbb8d9449af399e7332506d2b930c1246416e42775060"
 
 [[package]]
 name = "concurrent-queue"

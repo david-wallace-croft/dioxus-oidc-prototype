@@ -1,12 +1,10 @@
 use self::callback_query_segments::CallbackQuerySegments;
 use self::callback_state::CallbackState;
-use super::super::route::Route;
 use super::login_logout::constants;
 use super::login_logout::oidc::{ClientState, PkceState};
 use super::login_logout::props::client::ClientProps;
 use ::com_croftsoft_lib_role::Validator;
 use ::dioxus::prelude::*;
-use ::dioxus_router::prelude::*;
 use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
 use ::openidconnect::core::{CoreClient, CoreTokenResponse};
 
