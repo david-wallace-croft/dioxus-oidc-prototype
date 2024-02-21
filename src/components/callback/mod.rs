@@ -21,6 +21,10 @@ pub fn Callback(
 ) -> Element {
   log::info!("{} Callback", LogId::L001);
 
+  use_on_create(cx, || async move {
+    log::info!("{} on_create", LogId::L015);
+  });
+
   let callback_state: CallbackState = update_callback_state(cx, query_params);
 
   // if callback_state.validate() {
