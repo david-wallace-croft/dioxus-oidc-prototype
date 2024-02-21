@@ -1,3 +1,5 @@
+use crate::log::LogId;
+
 use self::callback_query_segments::CallbackQuerySegments;
 use self::callback_state::CallbackState;
 use super::login_logout::constants;
@@ -17,7 +19,7 @@ pub fn Callback(
   cx: Scope,
   query_params: CallbackQuerySegments,
 ) -> Element {
-  log::info!("Callback");
+  log::info!("{} Callback", LogId::L001);
 
   let callback_state: CallbackState = update_callback_state(cx, query_params);
 
@@ -74,6 +76,11 @@ pub fn Callback(
   render! {
   main {
     class: "app-callback",
+    onmounted: move |_event| {
+      cx.spawn(async move {
+        log::info!("{} onmounted", LogId::L014);
+      });
+    },
   h1 {
   "Callback"
   }
@@ -85,16 +92,16 @@ pub fn Callback(
 }
 
 fn load_pkce_verifier() -> Option<String> {
-  log::info!("Loading PKCE verifier from storage...");
+  log::info!("{} Loading PKCE verifier from storage...", LogId::L004);
   let pkce_verifier_result: Result<String, StorageError> =
     SessionStorage::get(constants::STORAGE_KEY_PKCE_VERIFIER);
   match pkce_verifier_result {
     Ok(pkce_verifier) => {
-      log::info!("PKCE verifier: {pkce_verifier}");
+      log::info!("{} PKCE verifier: {pkce_verifier}", LogId::L005);
       return Some(pkce_verifier);
     },
     Err(error) => {
-      log::error!("Error: {error}");
+      log::error!("{} Error: {error}", LogId::L006);
     },
   };
   None
@@ -104,7 +111,10 @@ fn load_pkce_verifier() -> Option<String> {
 fn read_client_props_from_shared_state(
   use_shared_state_client_state: UseSharedState<ClientState>
 ) -> Option<ClientProps> {
-  log::info!("Reading client properties from shared state...");
+  log::info!(
+    "{} Reading client properties from shared state...",
+    LogId::L002
+  );
   let client_state_ref: Ref<'_, ClientState> =
     use_shared_state_client_state.read();
   let client_props_option_ref: &Option<ClientProps> =
@@ -114,7 +124,10 @@ fn read_client_props_from_shared_state(
   }
   let client_props_option: Option<&ClientProps> =
     client_props_option_ref.as_ref();
-  log::info!("Client properties loaded from shared state.");
+  log::info!(
+    "{} Client properties loaded from shared state.",
+    LogId::L003
+  );
   let client_props: &ClientProps = client_props_option.unwrap();
   Some(client_props.clone())
 }
@@ -152,7 +165,7 @@ fn request_token(
   oidc_client: CoreClient,
   pkce_verifier: String,
 ) {
-  log::info!("Requesting token...");
+  log::info!("{} Requesting token...", LogId::L011);
   // TODO: clear the pkce verifier from session storage
   cx.spawn(async move {
     let result: Result<CoreTokenResponse, super::login_logout::errors::Error> =
@@ -164,10 +177,10 @@ fn request_token(
       .await;
     match result {
       Ok(token_response) => {
-        log::info!("{token_response:#?}");
+        log::info!("{} {token_response:#?}", LogId::L012);
       },
       Err(error) => {
-        log::error!("{error:?}");
+        log::error!("{} {error:?}", LogId::L013);
       },
     };
   });
@@ -195,20 +208,20 @@ fn update_callback_state(
 
 fn validate_client_props(client_props_option: Option<&ClientProps>) -> bool {
   if client_props_option.is_none() {
-    log::info!("Invalid client properties");
+    log::info!("{} Invalid client properties", LogId::L007);
     return false;
   }
   let client_props: &ClientProps = client_props_option.unwrap();
-  log::info!("Client properties: {client_props:#?}");
+  log::info!("{} Client properties: {client_props:#?}", LogId::L008);
   true
 }
 
 fn validate_pkce_verifier(pkce_verifier_option: Option<&String>) -> bool {
   if pkce_verifier_option.is_none() {
-    log::info!("Invalid PKCE verifier");
+    log::info!("{} Invalid PKCE verifier", LogId::L009);
     return false;
   }
   let pkce_verifier: &String = pkce_verifier_option.unwrap();
-  log::info!("PKCE verifier: {pkce_verifier:?}");
+  log::info!("{} PKCE verifier: {pkce_verifier:?}", LogId::L010);
   true
 }
