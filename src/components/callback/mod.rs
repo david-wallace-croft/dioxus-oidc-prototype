@@ -61,21 +61,23 @@ pub fn Callback(
   let client_props_option: Option<ClientProps> =
     read_client_props_from_shared_state(use_shared_state_client_state);
 
-  let pkce_verifier_option: Option<String> = load_pkce_verifier();
+  if client_props_option.is_some() {
+    let pkce_verifier_option: Option<String> = load_pkce_verifier();
 
-  let ready_to_request_token: bool = callback_state.validate()
-    && validate_client_props(client_props_option.as_ref())
-    && validate_pkce_verifier(pkce_verifier_option.as_ref());
+    let ready_to_request_token: bool = callback_state.validate()
+      && validate_client_props(client_props_option.as_ref())
+      && validate_pkce_verifier(pkce_verifier_option.as_ref());
 
-  if ready_to_request_token {
-    let client_props: &ClientProps = client_props_option.as_ref().unwrap();
-    let oidc_client: CoreClient = client_props.client.clone();
-    let authorization_code: String = callback_state.code_option.unwrap();
-    let pkce_verifier: String = pkce_verifier_option.as_ref().unwrap().clone();
-    // TODO: verify that state matches expected
-    request_token(authorization_code, cx, oidc_client, pkce_verifier);
+    if ready_to_request_token {
+      let client_props: &ClientProps = client_props_option.as_ref().unwrap();
+      let oidc_client: CoreClient = client_props.client.clone();
+      let authorization_code: String = callback_state.code_option.unwrap();
+      let pkce_verifier: String =
+        pkce_verifier_option.as_ref().unwrap().clone();
+      // TODO: verify that state matches expected
+      request_token(authorization_code, cx, oidc_client, pkce_verifier);
+    }
   }
-  // TODO: use onmounted?
   render! {
   main {
     class: "app-callback",
