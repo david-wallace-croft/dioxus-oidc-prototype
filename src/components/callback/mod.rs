@@ -74,6 +74,7 @@ pub fn Callback(
       let authorization_code: String = callback_state.code_option.unwrap();
       let pkce_verifier: String =
         pkce_verifier_option.as_ref().unwrap().clone();
+      // TODO: Prevent request_token() from being called again on re-render
       // TODO: verify that state matches expected
       request_token(authorization_code, cx, oidc_client, pkce_verifier);
     }
