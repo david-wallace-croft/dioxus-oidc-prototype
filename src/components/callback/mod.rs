@@ -62,7 +62,7 @@ pub fn Callback(
     read_client_props_from_shared_state(use_shared_state_client_state);
 
   if client_props_option.is_some() {
-    let pkce_verifier_option: Option<String> = load_pkce_verifier();
+    let pkce_verifier_option: Option<String> = pkce_verifier_load();
 
     let ready_to_request_token: bool = callback_state.validate()
       && validate_client_props(client_props_option.as_ref())
@@ -74,8 +74,8 @@ pub fn Callback(
       let authorization_code: String = callback_state.code_option.unwrap();
       let pkce_verifier: String =
         pkce_verifier_option.as_ref().unwrap().clone();
-      // TODO: Prevent request_token() from being called again on re-render
       // TODO: verify that state matches expected
+      pkce_verifier_delete();
       request_token(authorization_code, cx, oidc_client, pkce_verifier);
     }
   }
@@ -97,8 +97,13 @@ pub fn Callback(
   }
 }
 
-fn load_pkce_verifier() -> Option<String> {
-  log::info!("{} Loading PKCE verifier from storage...", LogId::L004);
+fn pkce_verifier_delete() {
+  log::info!("{} Deleting PKCE verifier from storage...", LogId::L018);
+  SessionStorage::delete(constants::STORAGE_KEY_PKCE_VERIFIER);
+}
+
+fn pkce_verifier_load() -> Option<String> {
+  log::info!("{} Load PKCE verifier from storage...", LogId::L004);
   let pkce_verifier_result: Result<String, StorageError> =
     SessionStorage::get(constants::STORAGE_KEY_PKCE_VERIFIER);
   match pkce_verifier_result {
