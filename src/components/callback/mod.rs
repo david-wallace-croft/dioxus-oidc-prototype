@@ -3,7 +3,7 @@ use crate::log::LogId;
 use self::callback_query_segments::CallbackQuerySegments;
 use self::callback_state::CallbackState;
 use super::login_logout::constants;
-use super::login_logout::oidc::{ClientState, PkceState};
+use super::login_logout::oidc::ClientState;
 use super::login_logout::props::client::ClientProps;
 use ::com_croftsoft_lib_role::Validator;
 use ::dioxus::prelude::*;
@@ -25,7 +25,7 @@ pub fn Callback(
     log::info!("{} on_create", LogId::L015);
   });
 
-  let callback_state: CallbackState = update_callback_state(cx, query_params);
+  let callback_state: CallbackState = query_params.into();
 
   // if callback_state.validate() {
   //   let nav = use_navigator(cx);
@@ -61,8 +61,7 @@ pub fn Callback(
   let client_props_option: Option<ClientProps> =
     read_client_props_from_shared_state(use_shared_state_client_state);
 
-  let pkce_verifier_option: Option<String> =
-    read_or_load_pkce_verifier(&client_props_option, cx);
+  let pkce_verifier_option: Option<String> = load_pkce_verifier();
 
   let ready_to_request_token: bool = callback_state.validate()
     && validate_client_props(client_props_option.as_ref())
@@ -136,33 +135,6 @@ fn read_client_props_from_shared_state(
   Some(client_props.clone())
 }
 
-fn read_or_load_pkce_verifier(
-  client_props_option: &Option<ClientProps>,
-  cx: Scope<CallbackProps>,
-) -> Option<String> {
-  client_props_option.as_ref()?;
-  let use_shared_state_pkce_state_option: Option<&UseSharedState<PkceState>> =
-    use_shared_state::<PkceState>(cx);
-  // TODO: Can this ever be None?
-  use_shared_state_pkce_state_option?;
-  let use_shared_state_pkce_state: &UseSharedState<PkceState> =
-    use_shared_state_pkce_state_option.unwrap();
-  {
-    let pkce_state_ref: Ref<'_, PkceState> = use_shared_state_pkce_state.read();
-    let pkce_verifier_option: &Option<String> =
-      &pkce_state_ref.pkce_verifier_option;
-    if pkce_verifier_option.is_some() {
-      return pkce_verifier_option.clone();
-    }
-  }
-  let pkce_verifier_option: Option<String> = load_pkce_verifier();
-  pkce_verifier_option.as_ref()?;
-  *use_shared_state_pkce_state.write() = PkceState {
-    pkce_verifier_option: pkce_verifier_option.clone(),
-  };
-  pkce_verifier_option
-}
-
 fn request_token(
   authorization_code: String,
   cx: Scope<CallbackProps>,
@@ -188,26 +160,6 @@ fn request_token(
       },
     };
   });
-}
-
-fn update_callback_state(
-  cx: Scope<CallbackProps>,
-  query_params: &CallbackQuerySegments,
-) -> CallbackState {
-  let use_shared_state_callback_state_option: Option<
-    &UseSharedState<CallbackState>,
-  > = use_shared_state::<CallbackState>(cx);
-  // TODO: Is this possible?
-  if use_shared_state_callback_state_option.is_none() {
-    return CallbackState::default();
-  }
-  let use_shared_state_callback_state: &UseSharedState<CallbackState> =
-    use_shared_state_callback_state_option.unwrap();
-  let new_callback_state: CallbackState = query_params.into();
-  if *use_shared_state_callback_state.read() != new_callback_state {
-    *use_shared_state_callback_state.write() = new_callback_state.clone();
-  }
-  new_callback_state
 }
 
 fn validate_client_props(client_props_option: Option<&ClientProps>) -> bool {
