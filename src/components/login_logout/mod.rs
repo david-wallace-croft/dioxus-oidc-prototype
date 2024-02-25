@@ -1,5 +1,5 @@
 use self::errors::Error;
-use self::oidc::{authorize_url, init_oidc_client, AuthRequest};
+use self::oidc::AuthRequest;
 use self::props::client::ClientProps;
 use crate::components::login_logout::client_state::ClientState;
 use ::dioxus::prelude::*;
@@ -51,7 +51,8 @@ async fn initialize_oidc_client(
     return;
   }
   log::info!("Initializing OIDC client...");
-  let result: Result<(ClientId, CoreClient), Error> = init_oidc_client().await;
+  let result: Result<(ClientId, CoreClient), Error> =
+    oidc::init_oidc_client().await;
   if result.is_err() {
     let error: Error = result.unwrap_err();
     log::error!("{error}");
@@ -96,7 +97,7 @@ fn on_click_login(
   use_state_label.set(5);
   let client_props: ClientProps = client_props_option.unwrap();
   let client: CoreClient = client_props.client;
-  let auth_request: AuthRequest = authorize_url(client);
+  let auth_request: AuthRequest = oidc::authorize_url(client);
   let authorize_url_str: &str = auth_request.authorize_url.as_str();
   log::info!("on_click_login() Authorize URL: {authorize_url_str}");
   let window_option: Option<Window> = window();
