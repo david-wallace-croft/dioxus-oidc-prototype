@@ -1,6 +1,4 @@
-use super::constants;
-use crate::log::LogId;
-use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
+use crate::storage;
 use ::oauth2::{CodeTokenRequest, PkceCodeChallenge, PkceCodeVerifier};
 use ::openidconnect::{
   core::{
@@ -53,16 +51,7 @@ pub fn authorize_url(client: CoreClient) -> AuthRequest {
     PkceCodeChallenge::new_random_sha256();
   let pkce_verifier_secret: &str = pkce_verifier.secret();
   log::info!("authorize_url() pkce_verifier: {pkce_verifier_secret}");
-  let result: Result<(), StorageError> =
-    SessionStorage::set(constants::STORAGE_KEY_PKCE_VERIFIER, &pkce_verifier);
-  match result {
-    Ok(_) => {
-      log::info!("{} PKCE Verifier stored successfully", LogId::L016)
-    },
-    Err(storage_error) => {
-      log::error!("{} {storage_error}", LogId::L017);
-    },
-  };
+  storage::pkce_verifier_set(pkce_verifier_secret);
   // TODO: What about the csrf state?
   let (authorize_url, _csrf_state, nonce) = client
     .authorize_url(

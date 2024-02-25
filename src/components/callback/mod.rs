@@ -1,12 +1,11 @@
 use self::callback_query_segments::CallbackQuerySegments;
 use self::callback_state::CallbackState;
-use super::login_logout::constants;
 use super::login_logout::props::client::ClientProps;
 use crate::components::login_logout::client_state::ClientState;
 use crate::log::LogId;
+use crate::storage;
 use ::com_croftsoft_lib_role::Validator;
 use ::dioxus::prelude::*;
-use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
 use ::openidconnect::core::{CoreClient, CoreTokenResponse};
 
 pub mod callback_query_segments;
@@ -63,7 +62,7 @@ pub fn Callback(
     );
 
   if client_props_option.is_some() {
-    let pkce_verifier_option: Option<String> = pkce_verifier_load();
+    let pkce_verifier_option: Option<String> = storage::pkce_verifier_get();
 
     let ready_to_request_token: bool = callback_state.validate()
       && validate_client_props(client_props_option.as_ref())
@@ -76,7 +75,7 @@ pub fn Callback(
       let pkce_verifier: String =
         pkce_verifier_option.as_ref().unwrap().clone();
       // TODO: verify that state matches expected
-      pkce_verifier_delete();
+      storage::pkce_verifier_delete();
       request_token(authorization_code, cx, oidc_client, pkce_verifier);
     }
   }
@@ -96,27 +95,6 @@ pub fn Callback(
   }
   }
   }
-}
-
-fn pkce_verifier_delete() {
-  log::info!("{} Deleting PKCE verifier from storage...", LogId::L018);
-  SessionStorage::delete(constants::STORAGE_KEY_PKCE_VERIFIER);
-}
-
-fn pkce_verifier_load() -> Option<String> {
-  log::info!("{} Load PKCE verifier from storage...", LogId::L004);
-  let pkce_verifier_result: Result<String, StorageError> =
-    SessionStorage::get(constants::STORAGE_KEY_PKCE_VERIFIER);
-  match pkce_verifier_result {
-    Ok(pkce_verifier) => {
-      log::info!("{} PKCE verifier: {pkce_verifier}", LogId::L005);
-      return Some(pkce_verifier);
-    },
-    Err(error) => {
-      log::error!("{} Error: {error}", LogId::L006);
-    },
-  };
-  None
 }
 
 fn request_token(
