@@ -1,10 +1,9 @@
-use crate::log::LogId;
-
 use self::callback_query_segments::CallbackQuerySegments;
 use self::callback_state::CallbackState;
 use super::login_logout::constants;
-use super::login_logout::oidc::ClientState;
 use super::login_logout::props::client::ClientProps;
+use crate::components::login_logout::client_state::ClientState;
+use crate::log::LogId;
 use ::com_croftsoft_lib_role::Validator;
 use ::dioxus::prelude::*;
 use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
@@ -59,7 +58,9 @@ pub fn Callback(
   // );
 
   let client_props_option: Option<ClientProps> =
-    read_client_props_from_shared_state(use_shared_state_client_state);
+    ClientState::read_client_props_from_shared_state(
+      use_shared_state_client_state,
+    );
 
   if client_props_option.is_some() {
     let pkce_verifier_option: Option<String> = pkce_verifier_load();
@@ -116,31 +117,6 @@ fn pkce_verifier_load() -> Option<String> {
     },
   };
   None
-}
-
-// TODO: consolidate copy and paste of this function from login-logout component
-fn read_client_props_from_shared_state(
-  use_shared_state_client_state: UseSharedState<ClientState>
-) -> Option<ClientProps> {
-  log::info!(
-    "{} Reading client properties from shared state...",
-    LogId::L002
-  );
-  let client_state_ref: Ref<'_, ClientState> =
-    use_shared_state_client_state.read();
-  let client_props_option_ref: &Option<ClientProps> =
-    &client_state_ref.oidc_client;
-  if client_props_option_ref.is_none() {
-    return None;
-  }
-  let client_props_option: Option<&ClientProps> =
-    client_props_option_ref.as_ref();
-  log::info!(
-    "{} Client properties loaded from shared state.",
-    LogId::L003
-  );
-  let client_props: &ClientProps = client_props_option.unwrap();
-  Some(client_props.clone())
 }
 
 fn request_token(

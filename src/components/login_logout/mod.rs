@@ -1,11 +1,13 @@
 use self::errors::Error;
-use self::oidc::{authorize_url, init_oidc_client, AuthRequest, ClientState};
+use self::oidc::{authorize_url, init_oidc_client, AuthRequest};
 use self::props::client::ClientProps;
+use crate::components::login_logout::client_state::ClientState;
 use ::dioxus::prelude::*;
 use ::openidconnect::core::CoreClient;
 use ::openidconnect::ClientId;
 use ::web_sys::{window, Window};
 
+pub mod client_state;
 pub mod constants;
 pub mod errors;
 pub mod oidc;
@@ -41,8 +43,10 @@ async fn initialize_oidc_client(
   use_shared_state_client_state: UseSharedState<ClientState>
 ) {
   // TODO: Is this still needed?
-  if read_client_props_from_shared_state(use_shared_state_client_state.clone())
-    .is_some()
+  if ClientState::read_client_props_from_shared_state(
+    use_shared_state_client_state.clone(),
+  )
+  .is_some()
   {
     return;
   }
@@ -82,7 +86,9 @@ fn on_click_login(
   let use_shared_state_client_state: &UseSharedState<ClientState> =
     use_shared_state_client_state_option.unwrap();
   let client_props_option: Option<ClientProps> =
-    read_client_props_from_shared_state(use_shared_state_client_state.clone());
+    ClientState::read_client_props_from_shared_state(
+      use_shared_state_client_state.clone(),
+    );
   if client_props_option.is_none() {
     use_state_label.set(4);
     return;
@@ -101,22 +107,4 @@ fn on_click_login(
   use_state_label.set(7);
   let window: Window = window_option.unwrap();
   let _result = window.open_with_url_and_target(authorize_url_str, "_self");
-}
-
-fn read_client_props_from_shared_state(
-  use_shared_state_client_state: UseSharedState<ClientState>
-) -> Option<ClientProps> {
-  let client_state_ref: Ref<'_, ClientState> =
-    use_shared_state_client_state.read();
-  let client_props_option_ref: &Option<ClientProps> =
-    &client_state_ref.oidc_client;
-  if client_props_option_ref.is_none() {
-    return None;
-  }
-  let client_props_option: Option<&ClientProps> =
-    client_props_option_ref.as_ref();
-  log::info!("Client properties loaded from shared state.");
-  let client_props: &ClientProps = client_props_option.unwrap();
-  log::info!("{client_props:#?}");
-  Some(client_props.clone())
 }

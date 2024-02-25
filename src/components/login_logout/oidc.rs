@@ -1,5 +1,4 @@
 use super::constants;
-use super::props::client::ClientProps;
 use crate::log::LogId;
 use ::gloo_storage::{errors::StorageError, SessionStorage, Storage};
 use ::oauth2::{CodeTokenRequest, PkceCodeChallenge, PkceCodeVerifier};
@@ -15,11 +14,6 @@ use ::openidconnect::{
   RedirectUrl, RefreshToken, RequestTokenError, StandardErrorResponse,
 };
 use ::serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, Default)]
-pub struct ClientState {
-  pub oidc_client: Option<ClientProps>,
-}
 
 /// State that holds the nonce and authorization url and the nonce generated to
 /// log in an user
