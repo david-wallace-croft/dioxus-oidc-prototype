@@ -1,4 +1,4 @@
-use crate::storage;
+use crate::{storage, window};
 use ::oauth2::{CodeTokenRequest, PkceCodeChallenge, PkceCodeVerifier};
 use ::openidconnect::{
   core::{
@@ -89,7 +89,7 @@ pub async fn init_oidc_client(
 
   let client_secret = None;
 
-  let Some(origin) = storage::get_window_origin() else {
+  let Some(origin) = window::get_origin() else {
     return Err(super::errors::Error::WindowOrigin);
   };
 
