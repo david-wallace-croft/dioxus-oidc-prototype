@@ -11,7 +11,7 @@
     "hydrate": "dx build --features=hydrate --release",
     "prerender": "cargo run --bin prerender --features=prerender --release",
     "make": "npm run hydrate && npm run prerender && npm run format",
-    "serve": "http-server dist -o",
+    "serve": "http-server dist -a localhost -o",
     "start": "dx serve --hot-reload --release",
     "test": "npm run dist && npm run serve"
   }

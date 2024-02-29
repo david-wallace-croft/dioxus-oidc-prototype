@@ -84,12 +84,23 @@ pub async fn init_oidc_client(
 ) -> Result<(ClientId, CoreClient), super::errors::Error> {
   let client_id =
     ClientId::new(super::constants::DIOXUS_FRONT_CLIENT_ID.to_string());
+
   let provider_metadata = init_provider_metadata().await?;
+
   let client_secret = None;
-  let redirect_url = RedirectUrl::new(format!(
+
+  let Some(origin) = storage::get_window_origin() else {
+    return Err(super::errors::Error::WindowOrigin);
+  };
+
+  let redirect_url_string: String = format!(
     "{}/callback",
-    super::constants::DIOXUS_FRONT_URL
-  ))?;
+    // super::constants::DIOXUS_FRONT_URL
+    origin,
+  );
+
+  let redirect_url = RedirectUrl::new(redirect_url_string)?;
+
   Ok((
     client_id.clone(),
     CoreClient::from_provider_metadata(

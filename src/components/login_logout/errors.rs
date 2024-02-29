@@ -22,4 +22,6 @@ pub enum Error {
       StandardErrorResponse<CoreErrorResponseType>,
     >,
   ),
+  #[error("Window origin error")]
+  WindowOrigin,
 }

@@ -5,12 +5,19 @@ use gloo_storage::{LocalStorage, Storage};
 // TODO: use gloo_util for Window instead?
 use ::web_sys::Window;
 
+pub fn get_window_origin() -> Option<String> {
+  let window: Window = ::web_sys::window()?;
+
+  let origin: String = window.origin();
+
+  Some(origin)
+}
+
 pub fn log_info_window_origin() {
-  let window_option: Option<Window> = ::web_sys::window();
-  let Some(window) = window_option else {
+  let Some(origin) = get_window_origin() else {
     return;
   };
-  let origin: String = window.origin();
+
   log::info!("{} Window origin: {origin}", LogId::L019);
 }
 
