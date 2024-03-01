@@ -4,14 +4,6 @@ use ::web_sys::Location;
 // TODO: use gloo_util for Window instead?
 use ::web_sys::Window;
 
-pub fn get_origin() -> Option<String> {
-  let window: Window = ::web_sys::window()?;
-
-  let origin: String = window.origin();
-
-  Some(origin)
-}
-
 pub fn get_location() -> Option<String> {
   let window: Window = ::web_sys::window()?;
 
@@ -20,6 +12,14 @@ pub fn get_location() -> Option<String> {
   let href_result: Result<String, JsValue> = location.href();
 
   href_result.ok()
+}
+
+pub fn get_origin() -> Option<String> {
+  let window: Window = ::web_sys::window()?;
+
+  let origin: String = window.origin();
+
+  Some(origin)
 }
 
 pub fn log_info_origin() {
