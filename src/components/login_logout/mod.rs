@@ -2,6 +2,7 @@ use self::errors::Error;
 use self::oidc::AuthRequest;
 use self::props::client::ClientProps;
 use crate::components::login_logout::client_state::ClientState;
+use crate::{storage, window};
 use ::dioxus::prelude::*;
 use ::openidconnect::core::CoreClient;
 use ::openidconnect::ClientId;
@@ -95,6 +96,12 @@ fn on_click_login(
     return;
   }
   use_state_label.set(5);
+  let Some(location) = window::get_location() else {
+    use_state_label.set(6);
+    return;
+  };
+  log::info!("on_click_login() Location: {location}");
+  storage::location_set(&location);
   let client_props: ClientProps = client_props_option.unwrap();
   let client: CoreClient = client_props.client;
   let auth_request: AuthRequest = oidc::authorize_url(client);
@@ -102,10 +109,10 @@ fn on_click_login(
   log::info!("on_click_login() Authorize URL: {authorize_url_str}");
   let window_option: Option<Window> = window();
   if window_option.is_none() {
-    use_state_label.set(6);
+    use_state_label.set(7);
     return;
   }
-  use_state_label.set(7);
+  use_state_label.set(8);
   let window: Window = window_option.unwrap();
   let _result = window.open_with_url_and_target(authorize_url_str, "_self");
 }

@@ -22,10 +22,18 @@ pub fn get_origin() -> Option<String> {
   Some(origin)
 }
 
+// pub fn log_info_location() {
+//   let Some(location) = get_location() else {
+//     return;
+//   };
+
+//   log::info!("{} Window location: {location}", LogId::L020);
+// }
+
 pub fn log_info_origin() {
   let Some(origin) = get_origin() else {
     return;
   };
 
-  log::info!("{} Window origin: {origin}", LogId::L019);
+  log::info!("{} Window origin: {origin}", LogId::L021);
 }
