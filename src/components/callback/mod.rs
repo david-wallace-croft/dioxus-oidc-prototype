@@ -6,6 +6,7 @@ use crate::log::LogId;
 use crate::storage;
 use ::com_croftsoft_lib_role::Validator;
 use ::dioxus::prelude::*;
+use ::dioxus_router::prelude::*;
 use ::openidconnect::core::{CoreClient, CoreTokenResponse};
 
 pub mod callback_query_segments;
@@ -77,12 +78,6 @@ pub fn Callback(
       // TODO: verify that state matches expected
       storage::pkce_verifier_delete();
       request_token(authorization_code, cx, oidc_client, pkce_verifier);
-
-      let location_option: Option<String> = storage::location_get();
-
-      if let Some(location) = location_option {
-        log::info!("{} Previous location: {location}", LogId::L026);
-      }
     }
   }
   render! {
@@ -110,7 +105,11 @@ fn request_token(
   pkce_verifier: String,
 ) {
   log::info!("{} Requesting token...", LogId::L011);
-  // TODO: clear the pkce verifier from session storage
+
+  let nav: &Navigator = use_navigator(cx);
+
+  to_owned![nav];
+
   cx.spawn(async move {
     let result: Result<CoreTokenResponse, super::login_logout::errors::Error> =
       super::login_logout::oidc::token_response(
@@ -119,9 +118,18 @@ fn request_token(
         pkce_verifier,
       )
       .await;
+
     match result {
       Ok(token_response) => {
         log::info!("{} {token_response:#?}", LogId::L012);
+
+        let location_option: Option<String> = storage::location_get();
+
+        if let Some(location) = location_option {
+          log::info!("{} Previous location: {location}", LogId::L026);
+
+          nav.push(location);
+        }
       },
       Err(error) => {
         log::error!("{} {error:?}", LogId::L013);
