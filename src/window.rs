@@ -35,5 +35,5 @@ pub fn log_info_origin() {
     return;
   };
 
-  log::info!("{} Window origin: {origin}", LogId::L021);
+  log::info!("{} Window origin: {origin}", LogId::L019);
 }

@@ -28,6 +28,11 @@ pub enum LogId {
   L024,
   L025,
   L026,
+  L027,
+  L028,
+  L029,
+  L030,
+  L031,
 }
 
 impl Display for LogId {

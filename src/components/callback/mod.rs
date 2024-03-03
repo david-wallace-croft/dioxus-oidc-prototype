@@ -123,6 +123,8 @@ fn request_token(
       Ok(token_response) => {
         log::info!("{} {token_response:#?}", LogId::L012);
 
+        storage::token_response_set(&token_response);
+
         let location_option: Option<String> = storage::location_get();
 
         if let Some(location) = location_option {
