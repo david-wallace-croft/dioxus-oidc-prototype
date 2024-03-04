@@ -5,6 +5,7 @@ use crate::components::login_logout::client_state::ClientState;
 use crate::{storage, window};
 use ::dioxus::prelude::*;
 use ::openidconnect::core::CoreClient;
+use ::openidconnect::core::CoreTokenResponse;
 use ::openidconnect::ClientId;
 use ::web_sys::{window, Window};
 
@@ -16,32 +17,55 @@ pub mod props;
 
 #[allow(non_snake_case)]
 pub fn LoginLogout(cx: Scope) -> Element {
-  let use_state_label: &UseState<i32> = use_state(cx, || 0);
+  let use_state_label: &UseState<String> = use_state(cx, || "...".into());
+
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
   > = use_shared_state::<ClientState>(cx);
+
   render! {
   div {
     class: "app-login-logout",
     onmounted: move |_event| {
       let use_shared_state_client_state: &UseSharedState<ClientState> =
         use_shared_state_client_state_option.unwrap();
+
       to_owned![use_shared_state_client_state];
+
+      to_owned![use_state_label];
+
       cx.spawn(async move {
-        initialize_oidc_client(use_shared_state_client_state).await
+        initialize(use_shared_state_client_state, use_state_label).await
       });
     },
   button {
-    onclick: move |_event| on_click_login(use_shared_state_client_state_option, use_state_label),
+    onclick: move |_event| on_click_login(use_shared_state_client_state_option),
     r#type: "button",
-    "Login {use_state_label}"
+    "{use_state_label}"
   }
   }
   }
 }
 
+async fn initialize(
+  use_shared_state_client_state: UseSharedState<ClientState>,
+  use_state_label: UseState<String>,
+) {
+  let token_response_option: Option<CoreTokenResponse> =
+    storage::token_response_get();
+
+  if token_response_option.is_some() {
+    use_state_label.set("Logout".into());
+
+    return;
+  }
+
+  initialize_oidc_client(use_shared_state_client_state, use_state_label).await;
+}
+
 async fn initialize_oidc_client(
-  use_shared_state_client_state: UseSharedState<ClientState>
+  use_shared_state_client_state: UseSharedState<ClientState>,
+  use_state_label: UseState<String>,
 ) {
   // TODO: Is this still needed?
   if ClientState::read_client_props_from_shared_state(
@@ -51,14 +75,20 @@ async fn initialize_oidc_client(
   {
     return;
   }
+
   log::info!("Initializing OIDC client...");
+
   let result: Result<(ClientId, CoreClient), Error> =
     oidc::init_oidc_client().await;
+
   if result.is_err() {
     let error: Error = result.unwrap_err();
+
     log::error!("{error}");
+
     return;
   }
+
   log::info!("Client properties initialized.");
   let result_value = result.unwrap();
   let client_id: ClientId = result_value.0;
@@ -72,19 +102,16 @@ async fn initialize_oidc_client(
     use_shared_state_client_state.write();
   *client_state_ref_mut = client_state;
   log::info!("Client properties saved to shared state.");
+  use_state_label.set("Login".into());
 }
 
 fn on_click_login(
-  use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
-  use_state_label: &UseState<i32>,
+  use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>
 ) {
   log::info!("Login clicked.");
-  use_state_label.set(1);
   if use_shared_state_client_state_option.is_none() {
-    use_state_label.set(2);
     return;
   }
-  use_state_label.set(3);
   let use_shared_state_client_state: &UseSharedState<ClientState> =
     use_shared_state_client_state_option.unwrap();
   let client_props_option: Option<ClientProps> =
@@ -92,12 +119,9 @@ fn on_click_login(
       use_shared_state_client_state.clone(),
     );
   if client_props_option.is_none() {
-    use_state_label.set(4);
     return;
   }
-  use_state_label.set(5);
   let Some(location) = window::get_location() else {
-    use_state_label.set(6);
     return;
   };
   log::info!("on_click_login() Location: {location}");
@@ -109,10 +133,8 @@ fn on_click_login(
   log::info!("on_click_login() Authorize URL: {authorize_url_str}");
   let window_option: Option<Window> = window();
   if window_option.is_none() {
-    use_state_label.set(7);
     return;
   }
-  use_state_label.set(8);
   let window: Window = window_option.unwrap();
   let _result = window.open_with_url_and_target(authorize_url_str, "_self");
 }

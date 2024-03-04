@@ -82,6 +82,7 @@ pub fn token_response_delete() {
   LocalStorage::delete(constants::STORAGE_KEY_TOKEN_RESPONSE);
 }
 
+// TODO: Use get_all() instead to prevent console error message
 pub fn token_response_get() -> Option<CoreTokenResponse> {
   log::info!("{} Load token response from storage...", LogId::L030);
 
