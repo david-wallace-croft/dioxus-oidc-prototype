@@ -3,6 +3,8 @@ use crate::log::LogId;
 use ::gloo_storage::errors::StorageError;
 use ::gloo_storage::{LocalStorage, Storage};
 use ::openidconnect::core::CoreTokenResponse;
+use ::serde_json::{Map, Value};
+use ::web_sys::js_sys::Object;
 
 pub fn location_get() -> Option<String> {
   log::info!("{} Load Location from storage...", LogId::L023);
@@ -82,25 +84,55 @@ pub fn token_response_delete() {
   LocalStorage::delete(constants::STORAGE_KEY_TOKEN_RESPONSE);
 }
 
-// TODO: Use get_all() instead to prevent console error message
 pub fn token_response_get() -> Option<CoreTokenResponse> {
   log::info!("{} Load token response from storage...", LogId::L030);
 
-  let token_response_result: Result<CoreTokenResponse, StorageError> =
-    LocalStorage::get(constants::STORAGE_KEY_TOKEN_RESPONSE);
+  let get_all_result: Result<_, StorageError> = LocalStorage::get_all();
 
-  match token_response_result {
-    Ok(token_response) => {
-      log::info!("{} Token response: {token_response:#?}", LogId::L031);
+  if get_all_result.is_err() {
+    let error: StorageError = get_all_result.err().unwrap();
 
-      Some(token_response)
-    },
-    Err(error) => {
-      log::error!("{} Error: {error}", LogId::L020);
+    log::error!("{} Error: {error}", LogId::L020);
 
-      None
-    },
+    return None;
   }
+
+  let get_all_value: Object = get_all_result.unwrap();
+
+  log::info!("{} Storage: {get_all_value:#?}", LogId::L034);
+
+  return None;
+
+  // let map: BTreeMap<String, String> = map_result.unwrap();
+
+  // let map = BTreeMap::from(get_all_result.unwrap());
+
+  // let token_response_value_option: Option<&String> =
+  //   map.get(constants::STORAGE_KEY_TOKEN_RESPONSE);
+
+  // if token_response_value_option.is_none() {
+  //   log::error!("{} Token response not found", LogId::L031);
+
+  //   return None;
+  // }
+
+  // let token_response_value: &String = token_response_value_option.unwrap();
+
+  // let token_response_result: Result<CoreTokenResponse, serde_json::Error> =
+  //   serde_json::from_str(token_response_value);
+
+  // match token_response_result {
+  //   Ok(token_response) => {
+  //     log::info!("{} Token response: {token_response:#?}", LogId::L032);
+
+  //     Some(token_response)
+  //   },
+  //   Err(error) => {
+  //     log::error!("{} Error: {error}", LogId::L033);
+
+  //     None
+  //   },
+  // }
 }
 
 pub fn token_response_set(token_response: &CoreTokenResponse) {
