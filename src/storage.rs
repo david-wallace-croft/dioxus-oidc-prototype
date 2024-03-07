@@ -3,8 +3,8 @@ use crate::log::LogId;
 use ::gloo_storage::errors::StorageError;
 use ::gloo_storage::{LocalStorage, Storage};
 use ::openidconnect::core::CoreTokenResponse;
-use ::serde_json::{Map, Value};
-use ::web_sys::js_sys::Object;
+use ::serde_json::Value;
+use serde_json::Value::Object;
 
 pub fn location_get() -> Option<String> {
   log::info!("{} Load Location from storage...", LogId::L023);
@@ -97,42 +97,56 @@ pub fn token_response_get() -> Option<CoreTokenResponse> {
     return None;
   }
 
-  let get_all_value: Object = get_all_result.unwrap();
+  let get_all_value: Value = get_all_result.unwrap();
 
   log::info!("{} Storage: {get_all_value:#?}", LogId::L034);
 
-  return None;
+  let Object(map) = get_all_value else {
+    log::error!("{} Storage value is not an object", LogId::L035);
 
-  // let map: BTreeMap<String, String> = map_result.unwrap();
+    return None;
+  };
 
-  // let map = BTreeMap::from(get_all_result.unwrap());
+  let token_response_value_option: Option<&Value> =
+    map.get(constants::STORAGE_KEY_TOKEN_RESPONSE);
 
-  // let token_response_value_option: Option<&String> =
-  //   map.get(constants::STORAGE_KEY_TOKEN_RESPONSE);
+  let Some(token_response_value) = token_response_value_option else {
+    log::error!("{} Token response not found", LogId::L031);
 
-  // if token_response_value_option.is_none() {
-  //   log::error!("{} Token response not found", LogId::L031);
+    return None;
+  };
 
-  //   return None;
-  // }
+  log::info!(
+    "{} Token response value: {token_response_value:#?}",
+    LogId::L036
+  );
 
-  // let token_response_value: &String = token_response_value_option.unwrap();
+  let Value::String(token_response_string) = token_response_value else {
+    log::error!("{} Token response is not a string", LogId::L037);
 
-  // let token_response_result: Result<CoreTokenResponse, serde_json::Error> =
-  //   serde_json::from_str(token_response_value);
+    return None;
+  };
 
-  // match token_response_result {
-  //   Ok(token_response) => {
-  //     log::info!("{} Token response: {token_response:#?}", LogId::L032);
+  log::info!(
+    "{} Token response string: {token_response_string:#?}",
+    LogId::L032
+  );
 
-  //     Some(token_response)
-  //   },
-  //   Err(error) => {
-  //     log::error!("{} Error: {error}", LogId::L033);
+  let token_response_result: Result<CoreTokenResponse, serde_json::Error> =
+    serde_json::from_str(token_response_string);
 
-  //     None
-  //   },
-  // }
+  match token_response_result {
+    Ok(token_response) => {
+      log::info!("{} Token response: {token_response:#?}", LogId::L038);
+
+      Some(token_response)
+    },
+    Err(error) => {
+      log::error!("{} Error: {error}", LogId::L033);
+
+      None
+    },
+  }
 }
 
 pub fn token_response_set(token_response: &CoreTokenResponse) {
