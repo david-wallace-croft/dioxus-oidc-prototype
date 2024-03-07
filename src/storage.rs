@@ -87,7 +87,7 @@ pub fn token_response_delete() {
 pub fn token_response_get() -> Option<CoreTokenResponse> {
   log::info!("{} Load token response from storage...", LogId::L030);
 
-  let get_all_result: Result<_, StorageError> = LocalStorage::get_all();
+  let get_all_result: Result<Value, StorageError> = LocalStorage::get_all();
 
   if get_all_result.is_err() {
     let error: StorageError = get_all_result.err().unwrap();
@@ -101,14 +101,14 @@ pub fn token_response_get() -> Option<CoreTokenResponse> {
 
   log::info!("{} Storage: {get_all_value:#?}", LogId::L034);
 
-  let Object(map) = get_all_value else {
+  let Object(mut map) = get_all_value else {
     log::error!("{} Storage value is not an object", LogId::L035);
 
     return None;
   };
 
-  let token_response_value_option: Option<&Value> =
-    map.get(constants::STORAGE_KEY_TOKEN_RESPONSE);
+  let token_response_value_option: Option<Value> =
+    map.remove(constants::STORAGE_KEY_TOKEN_RESPONSE);
 
   let Some(token_response_value) = token_response_value_option else {
     log::error!("{} Token response not found", LogId::L031);
@@ -121,32 +121,20 @@ pub fn token_response_get() -> Option<CoreTokenResponse> {
     LogId::L036
   );
 
-  let Value::String(token_response_string) = token_response_value else {
-    log::error!("{} Token response is not a string", LogId::L037);
+  let token_response_result: Result<CoreTokenResponse, serde_json::Error> =
+    serde_json::from_value(token_response_value);
+
+  if let Err(error) = token_response_result {
+    log::error!("{} Error: {error}", LogId::L033);
 
     return None;
-  };
-
-  log::info!(
-    "{} Token response string: {token_response_string:#?}",
-    LogId::L032
-  );
-
-  let token_response_result: Result<CoreTokenResponse, serde_json::Error> =
-    serde_json::from_str(token_response_string);
-
-  match token_response_result {
-    Ok(token_response) => {
-      log::info!("{} Token response: {token_response:#?}", LogId::L038);
-
-      Some(token_response)
-    },
-    Err(error) => {
-      log::error!("{} Error: {error}", LogId::L033);
-
-      None
-    },
   }
+
+  let token_response: CoreTokenResponse = token_response_result.unwrap();
+
+  log::info!("{} Token response: {token_response:#?}", LogId::L038);
+
+  Some(token_response)
 }
 
 pub fn token_response_set(token_response: &CoreTokenResponse) {
