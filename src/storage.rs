@@ -8,10 +8,29 @@ use ::serde_json::Value;
 use ::serde_json::Value::Object;
 use ::std::fmt::Debug;
 
+#[derive(Debug)]
 pub enum StorageKey {
   Location,
   PkceVerifier,
   TokenResponse,
+}
+
+impl StorageKey {
+  fn to_constant(&self) -> &'static str {
+    match self {
+      StorageKey::Location => constants::STORAGE_KEY_LOCATION,
+      StorageKey::PkceVerifier => constants::STORAGE_KEY_PKCE_VERIFIER,
+      StorageKey::TokenResponse => constants::STORAGE_KEY_TOKEN_RESPONSE,
+    }
+  }
+}
+
+pub fn delete(storage_key: StorageKey) {
+  log::trace!("{} Deleting {storage_key:?} from storage...", LogId::L018);
+
+  let key: &str = storage_key.to_constant();
+
+  LocalStorage::delete(key);
 }
 
 /// Gets a value from storage without showing a console error if not present.
@@ -36,11 +55,7 @@ pub fn get<T: Debug + DeserializeOwned>(storage_key: StorageKey) -> Option<T> {
     return None;
   };
 
-  let key: &str = match storage_key {
-    StorageKey::Location => constants::STORAGE_KEY_LOCATION,
-    StorageKey::PkceVerifier => constants::STORAGE_KEY_PKCE_VERIFIER,
-    StorageKey::TokenResponse => constants::STORAGE_KEY_TOKEN_RESPONSE,
-  };
+  let key: &str = storage_key.to_constant();
 
   let value: Value = map.remove(key)?;
 
@@ -79,11 +94,6 @@ pub fn location_set(location: &str) {
   };
 }
 
-pub fn pkce_verifier_delete() {
-  log::info!("{} Deleting PKCE verifier from storage...", LogId::L018);
-  LocalStorage::delete(constants::STORAGE_KEY_PKCE_VERIFIER);
-}
-
 pub fn pkce_verifier_set(pkce_verifier: &str) {
   let result: Result<(), StorageError> =
     LocalStorage::set(constants::STORAGE_KEY_PKCE_VERIFIER, pkce_verifier);
@@ -95,12 +105,6 @@ pub fn pkce_verifier_set(pkce_verifier: &str) {
       log::error!("{} {storage_error}", LogId::L017);
     },
   };
-}
-
-pub fn token_response_delete() {
-  log::info!("{} Deleting token response from storage...", LogId::L029);
-
-  LocalStorage::delete(constants::STORAGE_KEY_TOKEN_RESPONSE);
 }
 
 pub fn token_response_set(token_response: &CoreTokenResponse) {

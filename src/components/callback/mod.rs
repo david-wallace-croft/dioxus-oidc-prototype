@@ -77,7 +77,7 @@ pub fn Callback(
       let pkce_verifier: String =
         pkce_verifier_option.as_ref().unwrap().clone();
       // TODO: verify that state matches expected
-      storage::pkce_verifier_delete();
+      storage::delete(StorageKey::PkceVerifier);
       request_token(authorization_code, cx, oidc_client, pkce_verifier);
     }
   }
