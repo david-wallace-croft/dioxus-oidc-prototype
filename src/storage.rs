@@ -2,8 +2,8 @@ use crate::components::login_logout::constants;
 use crate::log::LogId;
 use ::gloo_storage::errors::StorageError;
 use ::gloo_storage::{LocalStorage, Storage};
-use ::openidconnect::core::CoreTokenResponse;
 use ::serde::de::DeserializeOwned;
+use ::serde::Serialize;
 use ::serde_json::Value;
 use ::serde_json::Value::Object;
 use ::std::fmt::Debug;
@@ -80,43 +80,28 @@ pub fn get<T: Debug + DeserializeOwned>(storage_key: StorageKey) -> Option<T> {
   Some(deserialized)
 }
 
-pub fn location_set(location: &str) {
-  let result: Result<(), StorageError> =
-    LocalStorage::set(constants::STORAGE_KEY_LOCATION, location);
+// TODO: Can I force the value type to match the storage key type?
+pub fn set<T: Debug + Serialize + ?Sized>(
+  storage_key: StorageKey,
+  value: &T,
+) -> Result<(), StorageError> {
+  log::trace!("{} Setting {storage_key:?} in storage...", LogId::L005);
 
-  match result {
+  let key: &str = storage_key.to_constant();
+
+  let result: Result<(), StorageError> = LocalStorage::set(key, value);
+
+  match &result {
     Ok(_) => {
-      log::info!("{} Location stored successfully", LogId::L021)
+      log::debug!(
+        "{} Setting {storage_key:?} in storage succeeded.",
+        LogId::L021
+      );
     },
     Err(storage_error) => {
       log::error!("{} {storage_error}", LogId::L022);
     },
   };
-}
 
-pub fn pkce_verifier_set(pkce_verifier: &str) {
-  let result: Result<(), StorageError> =
-    LocalStorage::set(constants::STORAGE_KEY_PKCE_VERIFIER, pkce_verifier);
-  match result {
-    Ok(_) => {
-      log::info!("{} PKCE Verifier stored successfully", LogId::L016)
-    },
-    Err(storage_error) => {
-      log::error!("{} {storage_error}", LogId::L017);
-    },
-  };
-}
-
-pub fn token_response_set(token_response: &CoreTokenResponse) {
-  let result: Result<(), StorageError> =
-    LocalStorage::set(constants::STORAGE_KEY_TOKEN_RESPONSE, token_response);
-
-  match result {
-    Ok(_) => {
-      log::info!("{} Token response stored successfully", LogId::L027)
-    },
-    Err(storage_error) => {
-      log::error!("{} {storage_error}", LogId::L028);
-    },
-  };
+  result
 }

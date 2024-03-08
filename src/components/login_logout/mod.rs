@@ -126,7 +126,8 @@ fn on_click_login(
     return;
   };
   log::info!("on_click_login() Location: {location}");
-  storage::location_set(&location);
+  // TODO: What if result is Err?
+  let _result = storage::set(StorageKey::Location, &location);
   let client_props: ClientProps = client_props_option.unwrap();
   let client: CoreClient = client_props.client;
   let auth_request: AuthRequest = oidc::authorize_url(client);

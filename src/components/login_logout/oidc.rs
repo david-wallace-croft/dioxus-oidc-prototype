@@ -1,3 +1,4 @@
+use crate::storage::StorageKey;
 use crate::{storage, window};
 use ::oauth2::{CodeTokenRequest, PkceCodeChallenge, PkceCodeVerifier};
 use ::openidconnect::{
@@ -51,7 +52,8 @@ pub fn authorize_url(client: CoreClient) -> AuthRequest {
     PkceCodeChallenge::new_random_sha256();
   let pkce_verifier_secret: &str = pkce_verifier.secret();
   log::info!("authorize_url() pkce_verifier: {pkce_verifier_secret}");
-  storage::pkce_verifier_set(pkce_verifier_secret);
+  // TODO: What if result is Err?
+  let _result = storage::set(StorageKey::PkceVerifier, pkce_verifier_secret);
   // TODO: What about the csrf state?
   let (authorize_url, _csrf_state, nonce) = client
     .authorize_url(

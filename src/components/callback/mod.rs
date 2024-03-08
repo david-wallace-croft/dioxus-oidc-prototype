@@ -124,7 +124,8 @@ fn request_token(
       Ok(token_response) => {
         log::info!("{} {token_response:#?}", LogId::L012);
 
-        storage::token_response_set(&token_response);
+        // TODO: What if result is Err?
+        let _result = storage::set(StorageKey::TokenResponse, &token_response);
 
         let location_option: Option<String> =
           storage::get(StorageKey::Location);
