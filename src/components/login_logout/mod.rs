@@ -2,6 +2,7 @@ use self::errors::Error;
 use self::oidc::AuthRequest;
 use self::props::client::ClientProps;
 use crate::components::login_logout::client_state::ClientState;
+use crate::storage::StorageKey;
 use crate::{storage, window};
 use ::dioxus::prelude::*;
 use ::openidconnect::core::CoreClient;
@@ -52,7 +53,7 @@ async fn initialize(
   use_state_label: UseState<String>,
 ) {
   let token_response_option: Option<CoreTokenResponse> =
-    storage::token_response_get();
+    storage::get(StorageKey::TokenResponse);
 
   if token_response_option.is_some() {
     use_state_label.set("Logout".into());

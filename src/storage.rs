@@ -3,27 +3,66 @@ use crate::log::LogId;
 use ::gloo_storage::errors::StorageError;
 use ::gloo_storage::{LocalStorage, Storage};
 use ::openidconnect::core::CoreTokenResponse;
+use ::serde::de::DeserializeOwned;
 use ::serde_json::Value;
-use serde_json::Value::Object;
+use ::serde_json::Value::Object;
+use ::std::fmt::Debug;
 
-pub fn location_get() -> Option<String> {
-  log::info!("{} Load Location from storage...", LogId::L023);
+pub enum StorageKey {
+  Location,
+  PkceVerifier,
+  TokenResponse,
+}
 
-  let location_result: Result<String, StorageError> =
-    LocalStorage::get(constants::STORAGE_KEY_LOCATION);
+/// Gets a value from storage without showing a console error if not present.
+pub fn get<T: Debug + DeserializeOwned>(storage_key: StorageKey) -> Option<T> {
+  let get_all_result: Result<Value, StorageError> = LocalStorage::get_all();
 
-  match location_result {
-    Ok(location) => {
-      log::info!("{} Location: {location}", LogId::L024);
+  if get_all_result.is_err() {
+    let error: StorageError = get_all_result.err().unwrap();
 
-      Some(location)
-    },
-    Err(error) => {
-      log::error!("{} Error: {error}", LogId::L025);
+    log::error!("{} Error: {error}", LogId::L020);
 
-      None
-    },
+    return None;
   }
+
+  let get_all_value: Value = get_all_result.unwrap();
+
+  log::debug!("{} Storage map: {get_all_value:#?}", LogId::L034);
+
+  let Object(mut map) = get_all_value else {
+    log::error!("{} Storage map is not an object", LogId::L035);
+
+    return None;
+  };
+
+  let key: &str = match storage_key {
+    StorageKey::Location => constants::STORAGE_KEY_LOCATION,
+    StorageKey::PkceVerifier => constants::STORAGE_KEY_PKCE_VERIFIER,
+    StorageKey::TokenResponse => constants::STORAGE_KEY_TOKEN_RESPONSE,
+  };
+
+  let value: Value = map.remove(key)?;
+
+  log::debug!("{} Storage value: {value:#?}", LogId::L036);
+
+  let from_value_result: Result<T, serde_json::Error> =
+    serde_json::from_value(value);
+
+  if let Err(error) = from_value_result {
+    log::error!("{} Error: {error}", LogId::L033);
+
+    return None;
+  }
+
+  let deserialized: T = from_value_result.unwrap();
+
+  log::debug!(
+    "{} Storage value deserialized: {deserialized:#?}",
+    LogId::L004
+  );
+
+  Some(deserialized)
 }
 
 pub fn location_set(location: &str) {
@@ -45,26 +84,6 @@ pub fn pkce_verifier_delete() {
   LocalStorage::delete(constants::STORAGE_KEY_PKCE_VERIFIER);
 }
 
-pub fn pkce_verifier_get() -> Option<String> {
-  log::info!("{} Load PKCE verifier from storage...", LogId::L004);
-
-  let pkce_verifier_result: Result<String, StorageError> =
-    LocalStorage::get(constants::STORAGE_KEY_PKCE_VERIFIER);
-
-  match pkce_verifier_result {
-    Ok(pkce_verifier) => {
-      log::info!("{} PKCE verifier: {pkce_verifier}", LogId::L005);
-
-      Some(pkce_verifier)
-    },
-    Err(error) => {
-      log::error!("{} Error: {error}", LogId::L006);
-
-      None
-    },
-  }
-}
-
 pub fn pkce_verifier_set(pkce_verifier: &str) {
   let result: Result<(), StorageError> =
     LocalStorage::set(constants::STORAGE_KEY_PKCE_VERIFIER, pkce_verifier);
@@ -82,59 +101,6 @@ pub fn token_response_delete() {
   log::info!("{} Deleting token response from storage...", LogId::L029);
 
   LocalStorage::delete(constants::STORAGE_KEY_TOKEN_RESPONSE);
-}
-
-pub fn token_response_get() -> Option<CoreTokenResponse> {
-  log::info!("{} Load token response from storage...", LogId::L030);
-
-  let get_all_result: Result<Value, StorageError> = LocalStorage::get_all();
-
-  if get_all_result.is_err() {
-    let error: StorageError = get_all_result.err().unwrap();
-
-    log::error!("{} Error: {error}", LogId::L020);
-
-    return None;
-  }
-
-  let get_all_value: Value = get_all_result.unwrap();
-
-  log::info!("{} Storage: {get_all_value:#?}", LogId::L034);
-
-  let Object(mut map) = get_all_value else {
-    log::error!("{} Storage value is not an object", LogId::L035);
-
-    return None;
-  };
-
-  let token_response_value_option: Option<Value> =
-    map.remove(constants::STORAGE_KEY_TOKEN_RESPONSE);
-
-  let Some(token_response_value) = token_response_value_option else {
-    log::error!("{} Token response not found", LogId::L031);
-
-    return None;
-  };
-
-  log::info!(
-    "{} Token response value: {token_response_value:#?}",
-    LogId::L036
-  );
-
-  let token_response_result: Result<CoreTokenResponse, serde_json::Error> =
-    serde_json::from_value(token_response_value);
-
-  if let Err(error) = token_response_result {
-    log::error!("{} Error: {error}", LogId::L033);
-
-    return None;
-  }
-
-  let token_response: CoreTokenResponse = token_response_result.unwrap();
-
-  log::info!("{} Token response: {token_response:#?}", LogId::L038);
-
-  Some(token_response)
 }
 
 pub fn token_response_set(token_response: &CoreTokenResponse) {

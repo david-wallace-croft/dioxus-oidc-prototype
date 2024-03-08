@@ -3,7 +3,7 @@ use self::callback_state::CallbackState;
 use super::login_logout::props::client::ClientProps;
 use crate::components::login_logout::client_state::ClientState;
 use crate::log::LogId;
-use crate::storage;
+use crate::storage::{self, StorageKey};
 use ::com_croftsoft_lib_role::Validator;
 use ::dioxus::prelude::*;
 use ::dioxus_router::prelude::*;
@@ -63,7 +63,8 @@ pub fn Callback(
     );
 
   if client_props_option.is_some() {
-    let pkce_verifier_option: Option<String> = storage::pkce_verifier_get();
+    let pkce_verifier_option: Option<String> =
+      storage::get(StorageKey::PkceVerifier);
 
     let ready_to_request_token: bool = callback_state.validate()
       && validate_client_props(client_props_option.as_ref())
@@ -125,7 +126,8 @@ fn request_token(
 
         storage::token_response_set(&token_response);
 
-        let location_option: Option<String> = storage::location_get();
+        let location_option: Option<String> =
+          storage::get(StorageKey::Location);
 
         if let Some(location) = location_option {
           log::info!("{} Previous location: {location}", LogId::L026);
