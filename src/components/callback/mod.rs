@@ -133,6 +133,8 @@ fn request_token(
         if let Some(location) = location_option {
           log::info!("{} Previous location: {location}", LogId::L026);
 
+          storage::delete(StorageKey::Location);
+
           nav.push(location);
         }
       },

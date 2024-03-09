@@ -17,6 +17,7 @@ pub mod errors;
 pub mod oidc;
 pub mod props;
 
+#[derive(PartialEq)]
 enum ButtonState {
   Loading,
   Login,
@@ -25,15 +26,15 @@ enum ButtonState {
 
 #[allow(non_snake_case)]
 pub fn LoginLogout(cx: Scope) -> Element {
-  let use_state_label: &UseState<ButtonState> =
+  let use_state_button_state: &UseState<ButtonState> =
     use_state(cx, || ButtonState::Loading);
 
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
   > = use_shared_state::<ClientState>(cx);
 
-  let button_label: &str = match use_state_label.get() {
-    ButtonState::Loading => "Loading...",
+  let button_label: &str = match use_state_button_state.get() {
+    ButtonState::Loading => "...",
     ButtonState::Login => "Login",
     ButtonState::Logout => "Logout",
   };
@@ -47,14 +48,14 @@ pub fn LoginLogout(cx: Scope) -> Element {
 
       to_owned![use_shared_state_client_state];
 
-      to_owned![use_state_label];
+      to_owned![use_state_button_state];
 
       cx.spawn(async move {
-        initialize(use_shared_state_client_state, use_state_label).await
+        initialize(use_shared_state_client_state, use_state_button_state).await
       });
     },
   button {
-    onclick: move |_event| on_click(use_shared_state_client_state_option),
+    onclick: move |_event| on_click(use_shared_state_client_state_option, use_state_button_state),
     r#type: "button",
     "{button_label}"
   }
@@ -64,23 +65,24 @@ pub fn LoginLogout(cx: Scope) -> Element {
 
 async fn initialize(
   use_shared_state_client_state: UseSharedState<ClientState>,
-  use_state_label: UseState<ButtonState>,
+  use_state_button_state: UseState<ButtonState>,
 ) {
   let token_response_option: Option<CoreTokenResponse> =
     storage::get(StorageKey::TokenResponse);
 
   if token_response_option.is_some() {
-    use_state_label.set(ButtonState::Logout);
+    use_state_button_state.set(ButtonState::Logout);
 
     return;
   }
 
-  initialize_oidc_client(use_shared_state_client_state, use_state_label).await;
+  initialize_oidc_client(use_shared_state_client_state, use_state_button_state)
+    .await;
 }
 
 async fn initialize_oidc_client(
   use_shared_state_client_state: UseSharedState<ClientState>,
-  use_state_label: UseState<ButtonState>,
+  use_state_button_state: UseState<ButtonState>,
 ) {
   // TODO: Is this still needed?
   if ClientState::read_client_props_from_shared_state(
@@ -127,15 +129,35 @@ async fn initialize_oidc_client(
 
   log::trace!("{} Client properties saved to shared state.", LogId::L025);
 
-  use_state_label.set(ButtonState::Login);
+  use_state_button_state.set(ButtonState::Login);
 }
 
 fn on_click(
-  use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>
+  use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
+  use_state_button_state: &UseState<ButtonState>,
 ) {
-  log::trace!("{} Login/Logout Button clicked.", LogId::L006);
+  log::trace!("{} Login/Logout button clicked.", LogId::L006);
 
+  match *use_state_button_state.get() {
+    ButtonState::Loading => {
+      // TODO: Maybe try to load the client again here
+    },
+    ButtonState::Login => {
+      login(use_shared_state_client_state_option, use_state_button_state)
+    },
+    ButtonState::Logout => logout(use_state_button_state),
+  };
+}
+
+fn login(
+  use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
+  use_state_button_state: &UseState<ButtonState>,
+) {
   if use_shared_state_client_state_option.is_none() {
+    log::trace!("{} No client state.", LogId::L027);
+
+    use_state_button_state.set(ButtonState::Loading);
+
     return;
   }
 
@@ -148,14 +170,22 @@ fn on_click(
     );
 
   if client_props_option.is_none() {
+    log::trace!("{} No client properties.", LogId::L028);
+
+    use_state_button_state.set(ButtonState::Loading);
+
     return;
   }
 
   let Some(location) = window::get_location() else {
+    log::trace!("{} No window location.", LogId::L029);
+
+    use_state_button_state.set(ButtonState::Loading);
+
     return;
   };
 
-  log::debug!("{} on_click_login() Location: {location}", LogId::L006);
+  log::debug!("{} login() Location: {location}", LogId::L016);
 
   // TODO: What if result is Err?
   let _result = storage::set(StorageKey::Location, &location);
@@ -168,18 +198,27 @@ fn on_click(
 
   let authorize_url_str: &str = auth_request.authorize_url.as_str();
 
-  log::debug!(
-    "{} on_click_login() Authorize URL: {authorize_url_str}",
-    LogId::L017
-  );
+  log::debug!("{} login() Authorize URL: {authorize_url_str}", LogId::L017);
 
   let window_option: Option<Window> = window();
 
   if window_option.is_none() {
+    use_state_button_state.set(ButtonState::Loading);
+
     return;
   }
 
   let window: Window = window_option.unwrap();
 
   let _result = window.open_with_url_and_target(authorize_url_str, "_self");
+}
+
+fn logout(use_state_button_state: &UseState<ButtonState>) {
+  // TODO: disable token with server
+
+  storage::delete(StorageKey::TokenResponse);
+
+  // TODO: Delete user data
+
+  use_state_button_state.set(ButtonState::Login);
 }

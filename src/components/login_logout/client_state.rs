@@ -12,24 +12,38 @@ impl ClientState {
   pub fn read_client_props_from_shared_state(
     use_shared_state_client_state: UseSharedState<ClientState>
   ) -> Option<ClientProps> {
-    log::info!(
+    log::trace!(
       "{} Reading client properties from shared state...",
       LogId::L002
     );
+
     let client_state_ref: Ref<'_, ClientState> =
       use_shared_state_client_state.read();
+
     let client_props_option_ref: &Option<ClientProps> =
       &client_state_ref.oidc_client;
+
+    log::debug!(
+      "{} Client properties: {client_props_option_ref:#?}",
+      LogId::L031
+    );
+
     if client_props_option_ref.is_none() {
+      log::trace!("{} No client properties.", LogId::L030);
+
       return None;
     }
+
     let client_props_option: Option<&ClientProps> =
       client_props_option_ref.as_ref();
-    log::info!(
+
+    log::trace!(
       "{} Client properties loaded from shared state.",
       LogId::L003
     );
+
     let client_props: &ClientProps = client_props_option.unwrap();
+
     Some(client_props.clone())
   }
 }
