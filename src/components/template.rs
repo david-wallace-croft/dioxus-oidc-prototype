@@ -10,7 +10,7 @@ use ::wasm_logger::Config;
 pub fn Template(cx: Scope) -> Element {
   use_shared_state_provider(cx, ClientState::default);
   use_on_create(cx, || async {
-    let config = Config::new(Level::Debug);
+    let config = Config::new(Level::Trace);
     ::wasm_logger::init(config);
   });
   render! {
