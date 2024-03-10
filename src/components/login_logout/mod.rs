@@ -27,7 +27,7 @@ enum ButtonState {
 #[allow(non_snake_case)]
 pub fn LoginLogout(cx: Scope) -> Element {
   let use_state_button_state: &UseState<ButtonState> =
-    use_state(cx, || ButtonState::Loading);
+    use_state(cx, || ButtonState::Login);
 
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
@@ -43,8 +43,6 @@ pub fn LoginLogout(cx: Scope) -> Element {
   div {
     class: "app-login-logout",
     onmounted: move |_mounted_event: MountedEvent| on_mounted(
-      cx,
-      use_shared_state_client_state_option,
       use_state_button_state),
   button {
     onclick: move |_mouse_event: MouseEvent| on_click(
@@ -58,9 +56,8 @@ pub fn LoginLogout(cx: Scope) -> Element {
   }
 }
 
-async fn initialize_oidc_client(
-  use_shared_state_client_state: UseSharedState<ClientState>,
-  use_state_button_state: UseState<ButtonState>,
+pub async fn initialize_oidc_client(
+  use_shared_state_client_state: &UseSharedState<ClientState>
 ) {
   log::trace!("{} LoginLogout.initialize_oidc_client()", LogId::L038);
 
@@ -108,8 +105,6 @@ async fn initialize_oidc_client(
   *client_state_ref_mut = client_state;
 
   log::trace!("{} Client properties saved to shared state.", LogId::L025);
-
-  use_state_button_state.set(ButtonState::Login);
 }
 
 fn login(
@@ -117,16 +112,25 @@ fn login(
   use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
   use_state_button_state: &UseState<ButtonState>,
 ) {
-  if use_shared_state_client_state_option.is_none() {
-    log::trace!("{} No client state.", LogId::L027);
-
-    use_state_button_state.set(ButtonState::Loading);
-
-    return;
-  }
-
   let use_shared_state_client_state: &UseSharedState<ClientState> =
     use_shared_state_client_state_option.unwrap();
+
+  to_owned![use_shared_state_client_state];
+
+  to_owned![use_state_button_state];
+
+  cx.spawn(async move {
+    login_async(use_shared_state_client_state, use_state_button_state).await
+  });
+}
+
+async fn login_async(
+  use_shared_state_client_state: UseSharedState<ClientState>,
+  use_state_button_state: UseState<ButtonState>,
+) {
+  use_state_button_state.set(ButtonState::Loading);
+
+  initialize_oidc_client(&use_shared_state_client_state).await;
 
   let client_props_option: Option<ClientProps> =
     ClientState::read_client_props_from_shared_state(
@@ -136,21 +140,7 @@ fn login(
   if client_props_option.is_none() {
     log::trace!("{} No client properties.", LogId::L028);
 
-    use_state_button_state.set(ButtonState::Loading);
-
-    to_owned![use_shared_state_client_state];
-
-    to_owned![use_state_button_state];
-
-    cx.spawn(async move {
-      initialize_oidc_client(
-        use_shared_state_client_state,
-        use_state_button_state,
-      )
-      .await;
-
-      // TODO: And then try to login again
-    });
+    use_state_button_state.set(ButtonState::Login);
 
     return;
   }
@@ -158,7 +148,7 @@ fn login(
   let Some(location) = window::get_location() else {
     log::trace!("{} No window location.", LogId::L029);
 
-    use_state_button_state.set(ButtonState::Loading);
+    use_state_button_state.set(ButtonState::Login);
 
     return;
   };
@@ -181,7 +171,7 @@ fn login(
   let window_option: Option<Window> = window();
 
   if window_option.is_none() {
-    use_state_button_state.set(ButtonState::Loading);
+    use_state_button_state.set(ButtonState::Login);
 
     return;
   }
@@ -221,11 +211,7 @@ fn on_click(
   };
 }
 
-fn on_mounted(
-  cx: Scope,
-  use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
-  use_state_button_state: &UseState<ButtonState>,
-) {
+fn on_mounted(use_state_button_state: &UseState<ButtonState>) {
   log::trace!("{} LoginLogout.on_mounted()", LogId::L032);
 
   let token_response_option: Option<CoreTokenResponse> =
@@ -240,19 +226,4 @@ fn on_mounted(
 
     return;
   }
-
-  let use_shared_state_client_state: &UseSharedState<ClientState> =
-    use_shared_state_client_state_option.unwrap();
-
-  to_owned![use_shared_state_client_state];
-
-  to_owned![use_state_button_state];
-
-  cx.spawn(async move {
-    initialize_oidc_client(
-      use_shared_state_client_state,
-      use_state_button_state,
-    )
-    .await
-  });
 }

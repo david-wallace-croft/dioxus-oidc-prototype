@@ -1,3 +1,4 @@
+use crate::log::LogId;
 use crate::storage::StorageKey;
 use crate::{storage, window};
 use ::oauth2::{CodeTokenRequest, PkceCodeChallenge, PkceCodeVerifier};
@@ -88,6 +89,8 @@ pub async fn init_oidc_client(
     ClientId::new(super::constants::DIOXUS_FRONT_CLIENT_ID.to_string());
 
   let provider_metadata = init_provider_metadata().await?;
+
+  log::debug!("{} provider_metadata: {provider_metadata:#?}", LogId::L039);
 
   let client_secret = None;
 
