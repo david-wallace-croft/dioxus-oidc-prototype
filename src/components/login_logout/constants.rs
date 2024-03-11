@@ -1,9 +1,7 @@
-pub const DIOXUS_FRONT_CLIENT_ID: &str = "1q8s8e62p5jhamjbnr3vqoq20j";
-
-// pub const DIOXUS_FRONT_URL: &str = "http://localhost:8080";
+pub const DIOXUS_FRONT_CLIENT_ID: &str = "3pau2jpn1kpu5f3ej7b1m0dn0q";
 
 pub const DIOXUS_FRONT_ISSUER_URL: &str =
-  "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_Lbx9u0VWf";
+  "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PEXRyPZNF";
 
 pub const STORAGE_KEY_LOCATION: &str = "location";
 
