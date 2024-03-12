@@ -183,6 +183,8 @@ async fn login_async(
 
 fn logout(use_state_button_state: &UseState<ButtonState>) {
   // TODO: disable token with server
+  // https://docs.aws.amazon.com/cognito/latest/developerguide/revocation-endpoint.html
+  // https://docs.aws.amazon.com/cognito/latest/developerguide/token-revocation.html
 
   storage::delete(StorageKey::TokenResponse);
 
