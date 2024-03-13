@@ -1,7 +1,8 @@
+use self::client_state::ClientState;
+use self::constants::DIOXUS_FRONT_ISSUER_URL;
 use self::errors::Error;
 use self::oidc::AuthRequest;
 use self::props::client::ClientProps;
-use crate::components::login_logout::client_state::ClientState;
 use crate::log::LogId;
 use crate::storage::StorageKey;
 use crate::{storage, window};
@@ -181,14 +182,12 @@ async fn login_async(
   let _result = window.open_with_url_and_target(authorize_url_str, "_self");
 }
 
-fn logout(use_state_button_state: &UseState<ButtonState>) {
-  // TODO: disable token with server
-  // https://docs.aws.amazon.com/cognito/latest/developerguide/revocation-endpoint.html
-  // https://docs.aws.amazon.com/cognito/latest/developerguide/token-revocation.html
-
+async fn logout(use_state_button_state: UseState<ButtonState>) {
   storage::delete(StorageKey::TokenResponse);
 
   // TODO: Delete user data
+
+  revoke_token().await;
 
   use_state_button_state.set(ButtonState::Login);
 }
@@ -204,12 +203,20 @@ fn on_click(
     ButtonState::Loading => {
       // TODO: Maybe try to load the client again here
     },
-    ButtonState::Login => login(
-      cx,
-      use_shared_state_client_state_option,
-      use_state_button_state,
-    ),
-    ButtonState::Logout => logout(use_state_button_state),
+    ButtonState::Login => {
+      login(
+        cx,
+        use_shared_state_client_state_option,
+        use_state_button_state,
+      );
+    },
+    ButtonState::Logout => {
+      to_owned![use_state_button_state];
+
+      cx.spawn(async move {
+        logout(use_state_button_state).await;
+      });
+    },
   };
 }
 
@@ -228,4 +235,47 @@ fn on_mounted(use_state_button_state: &UseState<ButtonState>) {
 
     return;
   }
+}
+
+async fn revoke_token() {
+  // TODO: disable token with server
+  // https://docs.aws.amazon.com/cognito/latest/developerguide/revocation-endpoint.html
+  // https://docs.aws.amazon.com/cognito/latest/developerguide/token-revocation.html
+
+  log::trace!("{} LoginLogout.revoke_token()", LogId::L044);
+
+  let client = reqwest::Client::new();
+
+  let revoke_url: String = format!("{DIOXUS_FRONT_ISSUER_URL}/oauth2/revoke");
+
+  let _result = client.post(revoke_url).body("").send().await;
+
+  // let token_response_option: Option<CoreTokenResponse> =
+  //   storage::get(StorageKey::TokenResponse);
+
+  // if token_response_option.is_none() {
+  //   log::trace!("{} No token response.", LogId:XXXXX);
+
+  //   return;
+  // }
+
+  // let token_response: CoreTokenResponse = token_response_option.unwrap();
+
+  // let client_props_option: Option<ClientProps> =
+  //   ClientState::read_client_props_from_shared_state(
+  //     use_shared_state::<ClientState>(cx),
+  //   );
+
+  // if client_props_option.is_none() {
+  //   log::trace!("{} No client properties.", LogId:XXXXX);
+
+  //   return;
+  // }
+
+  // let client_props: ClientProps = client_props_option.unwrap();
+
+  // let client: CoreClient = client_props.client;
+
+  // let revoke_token_request: oidc::RevokeTokenRequest =
+  //   oidc::revoke_token_request(client, token_response);
 }

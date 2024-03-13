@@ -45,6 +45,7 @@ pub enum LogId {
   L041,
   L042,
   L043,
+  L044,
 }
 
 impl Display for LogId {
