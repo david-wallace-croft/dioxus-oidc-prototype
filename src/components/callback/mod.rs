@@ -202,7 +202,10 @@ async fn request_token(
 
   // TODO
   // navigator.push(location);
-  navigator.push(Route::Home {});
+
+  let target: Route = Route::Home {};
+
+  navigator.push(target);
 }
 
 fn validate_client_props(client_props_option: Option<&ClientProps>) -> bool {

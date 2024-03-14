@@ -5,9 +5,11 @@ use self::oidc::AuthRequest;
 use self::props::client::ClientProps;
 use crate::components::template::TokenState;
 use crate::log::LogId;
+use crate::route::Route;
 use crate::storage::StorageKey;
 use crate::{storage, window};
 use ::dioxus::prelude::*;
+use ::dioxus_router::prelude::*;
 use ::openidconnect::core::CoreClient;
 use ::openidconnect::core::CoreTokenResponse;
 use ::openidconnect::ClientId;
@@ -187,6 +189,14 @@ async fn login_async(
   };
 
   log::debug!("{} login() Location: {location}", LogId::L016);
+
+  let history = WebHistory::<Route>::default();
+
+  let current_route: Route = history.current_route();
+
+  log::debug!("{} current route: {current_route}", LogId::L046);
+
+  // TODO: Use current route instead of location
 
   // TODO: What if the result is Err?
   let _result = storage::set(StorageKey::Location, &location);
