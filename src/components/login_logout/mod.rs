@@ -3,6 +3,7 @@ use self::constants::DIOXUS_FRONT_ISSUER_URL;
 use self::errors::Error;
 use self::oidc::AuthRequest;
 use self::props::client::ClientProps;
+use crate::components::template::TokenState;
 use crate::log::LogId;
 use crate::storage::StorageKey;
 use crate::{storage, window};
@@ -18,43 +19,80 @@ pub mod errors;
 pub mod oidc;
 pub mod props;
 
-#[derive(PartialEq)]
-enum ButtonState {
-  Loading,
-  Login,
-  Logout,
-}
-
 #[allow(non_snake_case)]
 pub fn LoginLogout(cx: Scope) -> Element {
-  let use_state_button_state: &UseState<ButtonState> =
-    use_state(cx, || ButtonState::Login);
-
   let use_shared_state_client_state_option: Option<
     &UseSharedState<ClientState>,
   > = use_shared_state::<ClientState>(cx);
 
-  let button_label: &str = match use_state_button_state.get() {
-    ButtonState::Loading => "...",
-    ButtonState::Login => "Login",
-    ButtonState::Logout => "Logout",
+  let use_shared_state_token_state_option: Option<&UseSharedState<TokenState>> =
+    use_shared_state::<TokenState>(cx);
+
+  let has_token_response: bool =
+    calc_has_token_response(use_shared_state_token_state_option);
+
+  let button_label: &str = if has_token_response {
+    "Logout"
+  } else {
+    "Login"
   };
 
   render! {
   div {
     class: "app-login-logout",
-    onmounted: move |_mounted_event: MountedEvent| on_mounted(
-      use_state_button_state),
+    onmounted: move |_mounted_event: MountedEvent| on_mounted(),
   button {
     onclick: move |_mouse_event: MouseEvent| on_click(
       cx,
       use_shared_state_client_state_option,
-      use_state_button_state),
+      use_shared_state_token_state_option),
     r#type: "button",
     "{button_label}"
   }
   }
   }
+}
+
+fn calc_has_token_response(
+  use_shared_state_token_state_option: Option<&UseSharedState<TokenState>>
+) -> bool {
+  if use_shared_state_token_state_option.is_none() {
+    log::trace!("{} No token state.", LogId::L037);
+
+    return false;
+  }
+
+  let use_shared_state_token_state: &UseSharedState<TokenState> =
+    use_shared_state_token_state_option.unwrap();
+
+  let token_state_ref: Ref<'_, TokenState> =
+    use_shared_state_token_state.read();
+
+  let core_token_response_option_ref: &Option<CoreTokenResponse> =
+    &token_state_ref.core_token_response_option;
+
+  if core_token_response_option_ref.is_none() {
+    log::trace!("{} No token response.", LogId::L040);
+
+    return false;
+  }
+
+  let core_token_response_ref_option: Option<&CoreTokenResponse> =
+    core_token_response_option_ref.as_ref();
+
+  let core_token_response_ref: &CoreTokenResponse =
+    core_token_response_ref_option.unwrap();
+
+  log::debug!(
+    "{} Token response: {core_token_response_ref:#?}",
+    LogId::L045
+  );
+
+  // TODO: Check that the token has not expired
+
+  // TODO: Schedule a token refresh
+
+  true
 }
 
 pub async fn initialize_oidc_client(
@@ -111,25 +149,19 @@ pub async fn initialize_oidc_client(
 fn login(
   cx: Scope,
   use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
-  use_state_button_state: &UseState<ButtonState>,
 ) {
   let use_shared_state_client_state: &UseSharedState<ClientState> =
     use_shared_state_client_state_option.unwrap();
 
   to_owned![use_shared_state_client_state];
 
-  to_owned![use_state_button_state];
-
-  cx.spawn(async move {
-    login_async(use_shared_state_client_state, use_state_button_state).await
-  });
+  cx.spawn(async move { login_async(use_shared_state_client_state).await });
 }
 
 async fn login_async(
-  use_shared_state_client_state: UseSharedState<ClientState>,
-  use_state_button_state: UseState<ButtonState>,
+  use_shared_state_client_state: UseSharedState<ClientState>
 ) {
-  use_state_button_state.set(ButtonState::Loading);
+  // TODO: disable the button
 
   initialize_oidc_client(&use_shared_state_client_state).await;
 
@@ -141,7 +173,7 @@ async fn login_async(
   if client_props_option.is_none() {
     log::trace!("{} No client properties.", LogId::L028);
 
-    use_state_button_state.set(ButtonState::Login);
+    // TODO: re-enable the button
 
     return;
   }
@@ -149,7 +181,7 @@ async fn login_async(
   let Some(location) = window::get_location() else {
     log::trace!("{} No window location.", LogId::L029);
 
-    use_state_button_state.set(ButtonState::Login);
+    // TODO: re-enable the button
 
     return;
   };
@@ -172,7 +204,7 @@ async fn login_async(
   let window_option: Option<Window> = window();
 
   if window_option.is_none() {
-    use_state_button_state.set(ButtonState::Login);
+    // TODO: re-enable the button
 
     return;
   }
@@ -182,59 +214,42 @@ async fn login_async(
   let _result = window.open_with_url_and_target(authorize_url_str, "_self");
 }
 
-async fn logout(use_state_button_state: UseState<ButtonState>) {
-  storage::delete(StorageKey::TokenResponse);
+async fn logout(use_shared_state_token_state: UseSharedState<TokenState>) {
+  *use_shared_state_token_state.write() = TokenState::default();
+
+  // TODO: Delete other state
 
   // TODO: Delete user data
 
   revoke_token().await;
-
-  use_state_button_state.set(ButtonState::Login);
 }
 
 fn on_click(
   cx: Scope,
   use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
-  use_state_button_state: &UseState<ButtonState>,
+  use_shared_state_token_state_option: Option<&UseSharedState<TokenState>>,
 ) {
   log::trace!("{} LoginLogout.on_click()", LogId::L006);
 
-  match *use_state_button_state.get() {
-    ButtonState::Loading => {
-      // TODO: Maybe try to load the client again here
-    },
-    ButtonState::Login => {
-      login(
-        cx,
-        use_shared_state_client_state_option,
-        use_state_button_state,
-      );
-    },
-    ButtonState::Logout => {
-      to_owned![use_state_button_state];
+  let has_token_response: bool =
+    calc_has_token_response(use_shared_state_token_state_option);
 
-      cx.spawn(async move {
-        logout(use_state_button_state).await;
-      });
-    },
+  if has_token_response {
+    let use_shared_state_token_state: &UseSharedState<TokenState> =
+      use_shared_state_token_state_option.unwrap();
+
+    to_owned![use_shared_state_token_state];
+
+    cx.spawn(async move {
+      logout(use_shared_state_token_state).await;
+    });
+  } else {
+    login(cx, use_shared_state_client_state_option);
   };
 }
 
-fn on_mounted(use_state_button_state: &UseState<ButtonState>) {
+fn on_mounted() {
   log::trace!("{} LoginLogout.on_mounted()", LogId::L032);
-
-  let token_response_option: Option<CoreTokenResponse> =
-    storage::get(StorageKey::TokenResponse);
-
-  if token_response_option.is_some() {
-    // TODO: Check that the token has not expired
-
-    // TODO: Schedule a token refresh
-
-    use_state_button_state.set(ButtonState::Logout);
-
-    return;
-  }
 }
 
 async fn revoke_token() {

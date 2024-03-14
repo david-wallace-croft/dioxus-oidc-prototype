@@ -3,7 +3,9 @@ use self::callback_state::CallbackState;
 use super::login_logout::props::client::ClientProps;
 use crate::components::login_logout;
 use crate::components::login_logout::client_state::ClientState;
+use crate::components::template::TokenState;
 use crate::log::LogId;
+use crate::route::Route;
 use crate::storage::{self, StorageKey};
 use ::com_croftsoft_lib_role::Validator;
 use ::dioxus::prelude::*;
@@ -36,9 +38,14 @@ pub fn Callback(
     &UseSharedState<ClientState>,
   > = use_shared_state::<ClientState>(cx);
 
+  let use_shared_state_token_state_option: Option<&UseSharedState<TokenState>> =
+    use_shared_state::<TokenState>(cx);
+
   // TODO: Is this possible?
-  if use_shared_state_client_state_option.is_none() {
-    log::trace!("{} No client state.", LogId::L041);
+  if use_shared_state_client_state_option.is_none()
+    || use_shared_state_token_state_option.is_none()
+  {
+    log::trace!("{} No shared state.", LogId::L041);
 
     return render! {
       p {
@@ -54,7 +61,12 @@ pub fn Callback(
       let use_shared_state_client_state: &UseSharedState<ClientState> =
         use_shared_state_client_state_option.unwrap();
 
+      let use_shared_state_token_state: &UseSharedState<TokenState> =
+        use_shared_state_token_state_option.unwrap();
+
       to_owned![use_shared_state_client_state];
+
+      to_owned![use_shared_state_token_state];
 
       let callback_state: CallbackState = callback_state.clone();
 
@@ -63,7 +75,11 @@ pub fn Callback(
       to_owned![navigator];
 
       cx.spawn(async move {
-        on_mounted_async(callback_state, navigator, use_shared_state_client_state).await;
+        on_mounted_async(
+          callback_state,
+          navigator,
+          use_shared_state_client_state,
+          use_shared_state_token_state).await;
       });
     },
   h1 {
@@ -80,6 +96,7 @@ async fn on_mounted_async(
   callback_state: CallbackState,
   navigator: Navigator,
   use_shared_state_client_state: UseSharedState<ClientState>,
+  use_shared_state_token_state: UseSharedState<TokenState>,
 ) {
   log::trace!("{} on_mounted_async()", LogId::L014);
 
@@ -111,14 +128,26 @@ async fn on_mounted_async(
 
     if ready_to_request_token {
       let client_props: &ClientProps = client_props_option.as_ref().unwrap();
+
       let oidc_client: CoreClient = client_props.client.clone();
+
       let authorization_code: String = callback_state.code_option.unwrap();
+
       let pkce_verifier: String =
         pkce_verifier_option.as_ref().unwrap().clone();
+
       // TODO: verify that state matches expected
+
       storage::delete(StorageKey::PkceVerifier);
-      request_token(authorization_code, navigator, oidc_client, pkce_verifier)
-        .await;
+
+      request_token(
+        authorization_code,
+        navigator,
+        oidc_client,
+        pkce_verifier,
+        use_shared_state_token_state,
+      )
+      .await;
     }
   }
 }
@@ -128,6 +157,7 @@ async fn request_token(
   navigator: Navigator,
   oidc_client: CoreClient,
   pkce_verifier: String,
+  use_shared_state_token_state: UseSharedState<TokenState>,
 ) {
   log::info!("{} Requesting token...", LogId::L011);
 
@@ -139,27 +169,40 @@ async fn request_token(
     )
     .await;
 
-  match result {
-    Ok(token_response) => {
-      log::info!("{} {token_response:#?}", LogId::L012);
+  if let Err(error) = result {
+    log::error!("{} {error:?}", LogId::L012);
 
-      // TODO: What if result is Err?
-      let _result = storage::set(StorageKey::TokenResponse, &token_response);
+    return;
+  }
 
-      let location_option: Option<String> = storage::get(StorageKey::Location);
+  let token_response: CoreTokenResponse = result.unwrap();
 
-      if let Some(location) = location_option {
-        log::info!("{} Previous location: {location}", LogId::L026);
+  // TODO: Can the token response be no?
 
-        storage::delete(StorageKey::Location);
+  log::info!("{} {token_response:#?}", LogId::L013);
 
-        navigator.push(location);
-      }
-    },
-    Err(error) => {
-      log::error!("{} {error:?}", LogId::L013);
-    },
+  *use_shared_state_token_state.write() = TokenState::new(token_response);
+
+  let location_option: Option<String> = storage::get(StorageKey::Location);
+
+  let Some(location) = location_option else {
+    log::debug!("{} No previous location; navigating to Home", LogId::L026);
+
+    navigator.push(Route::Home {});
+
+    return;
   };
+
+  storage::delete(StorageKey::Location);
+
+  log::debug!(
+    "{} Navigating to previous location: {location}",
+    LogId::L027
+  );
+
+  // TODO
+  // navigator.push(location);
+  navigator.push(Route::Home {});
 }
 
 fn validate_client_props(client_props_option: Option<&ClientProps>) -> bool {

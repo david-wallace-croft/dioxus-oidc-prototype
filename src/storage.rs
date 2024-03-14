@@ -11,8 +11,8 @@ use ::std::fmt::Debug;
 #[derive(Debug)]
 pub enum StorageKey {
   Location,
+  // TODO: Move this to a secure cookie?
   PkceVerifier,
-  TokenResponse,
 }
 
 impl StorageKey {
@@ -20,7 +20,6 @@ impl StorageKey {
     match self {
       StorageKey::Location => constants::STORAGE_KEY_LOCATION,
       StorageKey::PkceVerifier => constants::STORAGE_KEY_PKCE_VERIFIER,
-      StorageKey::TokenResponse => constants::STORAGE_KEY_TOKEN_RESPONSE,
     }
   }
 }
@@ -32,6 +31,8 @@ pub fn delete(storage_key: StorageKey) {
 
   LocalStorage::delete(key);
 }
+
+// TODO: Move these functions to a trait?
 
 /// Gets a value from storage without showing a console error if not present.
 pub fn get<T: Debug + DeserializeOwned>(storage_key: StorageKey) -> Option<T> {
