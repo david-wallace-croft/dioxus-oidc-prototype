@@ -6,8 +6,7 @@ use self::props::client::ClientProps;
 use crate::components::template::TokenState;
 use crate::log::LogId;
 use crate::route::Route;
-use crate::storage::StorageKey;
-use crate::{storage, window};
+use crate::storage::{self, StorageKey};
 use ::dioxus::prelude::*;
 use ::dioxus_router::prelude::*;
 use ::openidconnect::core::CoreClient;
@@ -180,26 +179,16 @@ async fn login_async(
     return;
   }
 
-  let Some(location) = window::get_location() else {
-    log::trace!("{} No window location.", LogId::L029);
-
-    // TODO: re-enable the button
-
-    return;
-  };
-
-  log::debug!("{} login() Location: {location}", LogId::L016);
-
   let history = WebHistory::<Route>::default();
 
   let current_route: Route = history.current_route();
 
   log::debug!("{} current route: {current_route}", LogId::L046);
 
-  // TODO: Use current route instead of location
+  // TODO: Send this via the state param instead of storage
 
   // TODO: What if the result is Err?
-  let _result = storage::set(StorageKey::Location, &location);
+  let _result = storage::set(StorageKey::CurrentRoute, &current_route);
 
   let client_props: ClientProps = client_props_option.unwrap();
 

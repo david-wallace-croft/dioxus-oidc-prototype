@@ -183,29 +183,25 @@ async fn request_token(
 
   *use_shared_state_token_state.write() = TokenState::new(token_response);
 
-  let location_option: Option<String> = storage::get(StorageKey::Location);
+  let current_route_option: Option<Route> =
+    storage::get(StorageKey::CurrentRoute);
 
-  let Some(location) = location_option else {
-    log::debug!("{} No previous location; navigating to Home", LogId::L026);
+  storage::delete(StorageKey::CurrentRoute);
+
+  let Some(current_route) = current_route_option else {
+    log::debug!("{} No current route; navigating to Home", LogId::L026);
 
     navigator.push(Route::Home {});
 
     return;
   };
 
-  storage::delete(StorageKey::Location);
-
   log::debug!(
-    "{} Navigating to previous location: {location}",
+    "{} Navigating to current route: {current_route}",
     LogId::L027
   );
 
-  // TODO
-  // navigator.push(location);
-
-  let target: Route = Route::Home {};
-
-  navigator.push(target);
+  navigator.push(current_route);
 }
 
 fn validate_client_props(client_props_option: Option<&ClientProps>) -> bool {

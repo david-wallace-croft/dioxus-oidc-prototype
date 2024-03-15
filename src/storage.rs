@@ -10,7 +10,7 @@ use ::std::fmt::Debug;
 
 #[derive(Debug)]
 pub enum StorageKey {
-  Location,
+  CurrentRoute,
   // TODO: Move this to a secure cookie?
   PkceVerifier,
 }
@@ -18,7 +18,7 @@ pub enum StorageKey {
 impl StorageKey {
   fn to_constant(&self) -> &'static str {
     match self {
-      StorageKey::Location => constants::STORAGE_KEY_LOCATION,
+      StorageKey::CurrentRoute => constants::STORAGE_KEY_CURRENT_ROUTE,
       StorageKey::PkceVerifier => constants::STORAGE_KEY_PKCE_VERIFIER,
     }
   }
