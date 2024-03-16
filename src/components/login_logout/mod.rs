@@ -193,6 +193,9 @@ async fn login_async(
 
   let auth_request: AuthRequest = oidc::authorize_url(client, csrf_token);
 
+  // TODO: Do I need to do anything with auth_request.nonce for CSRF protection?
+  // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics
+
   let authorize_url_str: &str = auth_request.authorize_url.as_str();
 
   log::debug!("{} login() Authorize URL: {authorize_url_str}", LogId::L017);
