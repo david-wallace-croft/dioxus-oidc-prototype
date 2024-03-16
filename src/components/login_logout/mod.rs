@@ -6,12 +6,12 @@ use self::props::client::ClientProps;
 use crate::components::template::TokenState;
 use crate::log::LogId;
 use crate::route::Route;
-use crate::storage::{self, StorageKey};
 use ::dioxus::prelude::*;
 use ::dioxus_router::prelude::*;
 use ::openidconnect::core::CoreClient;
 use ::openidconnect::core::CoreTokenResponse;
 use ::openidconnect::ClientId;
+use ::openidconnect::CsrfToken;
 use ::web_sys::{window, Window};
 
 pub mod client_state;
@@ -185,16 +185,13 @@ async fn login_async(
 
   log::debug!("{} current route: {current_route}", LogId::L046);
 
-  // TODO: Send this via the state param instead of storage
-
-  // TODO: What if the result is Err?
-  let _result = storage::set(StorageKey::CurrentRoute, &current_route);
+  let csrf_token: CsrfToken = current_route.into();
 
   let client_props: ClientProps = client_props_option.unwrap();
 
   let client: CoreClient = client_props.client;
 
-  let auth_request: AuthRequest = oidc::authorize_url(client);
+  let auth_request: AuthRequest = oidc::authorize_url(client, csrf_token);
 
   let authorize_url_str: &str = auth_request.authorize_url.as_str();
 

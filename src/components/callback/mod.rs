@@ -1,9 +1,10 @@
 use self::callback_query_segments::CallbackQuerySegments;
 use self::callback_state::CallbackState;
+use self::callback_state::CallbackStateString;
+use super::login_logout;
+use super::login_logout::client_state::ClientState;
 use super::login_logout::props::client::ClientProps;
-use crate::components::login_logout;
-use crate::components::login_logout::client_state::ClientState;
-use crate::components::template::TokenState;
+use super::template::TokenState;
 use crate::log::LogId;
 use crate::route::Route;
 use crate::storage::{self, StorageKey};
@@ -133,6 +134,8 @@ async fn on_mounted_async(
 
       let authorization_code: String = callback_state.code_option.unwrap();
 
+      let state_option: Option<String> = callback_state.state_option;
+
       let pkce_verifier: String =
         pkce_verifier_option.as_ref().unwrap().clone();
 
@@ -145,6 +148,7 @@ async fn on_mounted_async(
         navigator,
         oidc_client,
         pkce_verifier,
+        state_option,
         use_shared_state_token_state,
       )
       .await;
@@ -157,6 +161,7 @@ async fn request_token(
   navigator: Navigator,
   oidc_client: CoreClient,
   pkce_verifier: String,
+  state_option: Option<String>,
   use_shared_state_token_state: UseSharedState<TokenState>,
 ) {
   log::info!("{} Requesting token...", LogId::L011);
@@ -183,25 +188,19 @@ async fn request_token(
 
   *use_shared_state_token_state.write() = TokenState::new(token_response);
 
-  let current_route_option: Option<Route> =
-    storage::get(StorageKey::CurrentRoute);
-
-  storage::delete(StorageKey::CurrentRoute);
-
-  let Some(current_route) = current_route_option else {
-    log::debug!("{} No current route; navigating to Home", LogId::L026);
+  let Some(state) = state_option else {
+    log::debug!("{} No state; navigating to Home", LogId::L026);
 
     navigator.push(Route::Home {});
 
     return;
   };
 
-  log::debug!(
-    "{} Navigating to current route: {current_route}",
-    LogId::L027
-  );
+  let route: Route = CallbackStateString(state).into();
 
-  navigator.push(current_route);
+  log::debug!("{} Navigating to route: {route}", LogId::L027);
+
+  navigator.push(route);
 }
 
 fn validate_client_props(client_props_option: Option<&ClientProps>) -> bool {

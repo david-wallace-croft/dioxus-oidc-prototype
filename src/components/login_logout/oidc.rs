@@ -48,7 +48,10 @@ pub fn email(
   }
 }
 
-pub fn authorize_url(client: CoreClient) -> AuthRequest {
+pub fn authorize_url(
+  client: CoreClient,
+  csrf_token: CsrfToken,
+) -> AuthRequest {
   let (pkce_challenge, pkce_verifier): (PkceCodeChallenge, PkceCodeVerifier) =
     PkceCodeChallenge::new_random_sha256();
   let pkce_verifier_secret: &str = pkce_verifier.secret();
@@ -59,7 +62,7 @@ pub fn authorize_url(client: CoreClient) -> AuthRequest {
   let (authorize_url, _csrf_state, nonce) = client
     .authorize_url(
       AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
-      CsrfToken::new_random,
+      || csrf_token,
       Nonce::new_random,
     )
     // TODO: Do I need to add the openid scope?

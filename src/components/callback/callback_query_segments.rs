@@ -4,7 +4,7 @@ use ::serde::{Deserialize, Serialize};
 use ::std::borrow::Cow;
 use ::std::fmt::{self, Display, Formatter};
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct CallbackQuerySegments {
   pub code: String,
   pub state: String,
