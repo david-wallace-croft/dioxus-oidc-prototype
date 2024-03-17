@@ -54,7 +54,8 @@ pub fn LoginLogout(cx: Scope) -> Element {
   }
 }
 
-fn calc_has_token_response(
+// TODO: move this
+pub fn calc_has_token_response(
   use_shared_state_token_state_option: Option<&UseSharedState<TokenState>>
 ) -> bool {
   if use_shared_state_token_state_option.is_none() {
