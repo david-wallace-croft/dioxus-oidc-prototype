@@ -33,7 +33,7 @@ pub fn LoginLogout(cx: Scope) -> Element {
     calc_has_token_response(use_shared_state_token_state_option);
 
   let button_label: &str = if has_token_response {
-    "Logout"
+    "Profile"
   } else {
     "Login"
   };
@@ -214,16 +214,6 @@ async fn login_async(
   let _result = window.open_with_url_and_target(authorize_url_str, "_self");
 }
 
-async fn logout(use_shared_state_token_state: UseSharedState<TokenState>) {
-  *use_shared_state_token_state.write() = TokenState::default();
-
-  // TODO: Delete other state
-
-  // TODO: Delete user data
-
-  revoke_token().await;
-}
-
 fn on_click(
   cx: Scope,
   use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
@@ -235,14 +225,9 @@ fn on_click(
     calc_has_token_response(use_shared_state_token_state_option);
 
   if has_token_response {
-    let use_shared_state_token_state: &UseSharedState<TokenState> =
-      use_shared_state_token_state_option.unwrap();
+    let navigator: &Navigator = use_navigator(cx);
 
-    to_owned![use_shared_state_token_state];
-
-    cx.spawn(async move {
-      logout(use_shared_state_token_state).await;
-    });
+    navigator.push(Route::Profile {});
   } else {
     login(cx, use_shared_state_client_state_option);
   };
@@ -250,47 +235,4 @@ fn on_click(
 
 fn on_mounted() {
   log::trace!("{} LoginLogout.on_mounted()", LogId::L032);
-}
-
-async fn revoke_token() {
-  // TODO: disable token with server
-  // https://docs.aws.amazon.com/cognito/latest/developerguide/revocation-endpoint.html
-  // https://docs.aws.amazon.com/cognito/latest/developerguide/token-revocation.html
-
-  log::trace!("{} LoginLogout.revoke_token()", LogId::L044);
-
-  let client = reqwest::Client::new();
-
-  let revoke_url: String = format!("{DIOXUS_FRONT_ISSUER_URL}/oauth2/revoke");
-
-  let _result = client.post(revoke_url).body("").send().await;
-
-  // let token_response_option: Option<CoreTokenResponse> =
-  //   storage::get(StorageKey::TokenResponse);
-
-  // if token_response_option.is_none() {
-  //   log::trace!("{} No token response.", LogId:XXXXX);
-
-  //   return;
-  // }
-
-  // let token_response: CoreTokenResponse = token_response_option.unwrap();
-
-  // let client_props_option: Option<ClientProps> =
-  //   ClientState::read_client_props_from_shared_state(
-  //     use_shared_state::<ClientState>(cx),
-  //   );
-
-  // if client_props_option.is_none() {
-  //   log::trace!("{} No client properties.", LogId:XXXXX);
-
-  //   return;
-  // }
-
-  // let client_props: ClientProps = client_props_option.unwrap();
-
-  // let client: CoreClient = client_props.client;
-
-  // let revoke_token_request: oidc::RevokeTokenRequest =
-  //   oidc::revoke_token_request(client, token_response);
 }

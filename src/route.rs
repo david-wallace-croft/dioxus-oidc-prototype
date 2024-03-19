@@ -3,6 +3,7 @@ use super::components::callback::Callback;
 use super::components::colophon::Colophon;
 use super::components::home::Home;
 use super::components::page_not_found::PageNotFound;
+use super::components::profile::Profile;
 use super::components::template::Template;
 use ::dioxus::prelude::*;
 use ::dioxus_router::prelude::*;
@@ -10,6 +11,7 @@ use ::serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Routable, Serialize)]
 pub enum Route {
+  // TODO: Do we need this layout(Template)?
   #[layout(Template)]
   #[route("/")]
   Home {},
@@ -19,6 +21,8 @@ pub enum Route {
   Callback {
     query_params: CallbackQuerySegments,
   },
+  #[route("/profile")]
+  Profile {},
   #[end_layout]
   #[route("/:..route")]
   PageNotFound {

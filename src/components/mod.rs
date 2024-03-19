@@ -6,4 +6,5 @@ pub mod home;
 pub mod login_logout;
 pub mod nav;
 pub mod page_not_found;
+pub mod profile;
 pub mod template;
