@@ -1,5 +1,4 @@
 use self::client_state::ClientState;
-use self::constants::DIOXUS_FRONT_ISSUER_URL;
 use self::errors::Error;
 use self::oidc::AuthRequest;
 use self::props::client::ClientProps;

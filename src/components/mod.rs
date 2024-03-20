@@ -3,6 +3,7 @@ pub mod callback;
 pub mod colophon;
 pub mod header;
 pub mod home;
+pub mod logged_out;
 pub mod login_logout;
 pub mod nav;
 pub mod page_not_found;

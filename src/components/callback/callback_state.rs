@@ -61,6 +61,7 @@ pub struct CallbackStateString(pub String);
 
 const CALLBACK: &str = "callback";
 const COLOPHON: &str = "colophon";
+
 const HOME: &str = "home";
 
 impl From<CallbackStateString> for Route {
