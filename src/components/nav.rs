@@ -32,6 +32,12 @@ pub fn Nav(cx: Scope) -> Element {
             "Colophon"
           }
         }
+        li {
+          Link {
+            to: Route::Profile {},
+            "Profile"
+          }
+        }
       }
     }
   }

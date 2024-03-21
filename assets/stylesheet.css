@@ -60,7 +60,7 @@
 .app-nav ul {
   column-gap: 1rem;
   display: grid;
-  grid-template-columns: auto auto auto;
+  grid-template-columns: auto auto auto auto;
   justify-content: center;
   list-style: none;
   padding: 0;

@@ -15,16 +15,19 @@ impl From<&CallbackQuerySegments> for CallbackState {
       code,
       state,
     } = callback_query_segments;
+
     let code_option = if code.is_empty() {
       None
     } else {
       Some(code.clone())
     };
+
     let state_option = if state.is_empty() {
       None
     } else {
       Some(state.clone())
     };
+
     Self {
       code_option,
       state_option,
@@ -35,17 +38,20 @@ impl From<&CallbackQuerySegments> for CallbackState {
 impl Validator<bool> for CallbackState {
   fn validate(&self) -> bool {
     let mut valid = true;
+
     let CallbackState {
       code_option,
       ..
     } = self;
+
     if code_option.is_none() {
       log::info!("Invalid callback code");
       valid = false;
     } else {
       let code: String = code_option.clone().unwrap();
       log::info!("Callback code: {code}");
-    }
+    };
+
     // if state_option.is_none() {
     //   log::info!("Invalid callback state");
     //   valid = false;
@@ -53,6 +59,7 @@ impl Validator<bool> for CallbackState {
     //   let state: String = state_option.clone().unwrap();
     //   log::info!("Callback state: {state}");
     // }
+
     valid
   }
 }
@@ -61,8 +68,8 @@ pub struct CallbackStateString(pub String);
 
 const CALLBACK: &str = "callback";
 const COLOPHON: &str = "colophon";
-
 const HOME: &str = "home";
+const PROFILE: &str = "profile";
 
 impl From<CallbackStateString> for Route {
   fn from(callback_state_string: CallbackStateString) -> Self {
@@ -71,6 +78,7 @@ impl From<CallbackStateString> for Route {
         query_params: CallbackQuerySegments::default(),
       },
       COLOPHON => Route::Colophon {},
+      PROFILE => Route::Profile {},
       _ => Route::Home {},
     }
   }
@@ -83,6 +91,7 @@ impl From<Route> for CsrfToken {
         query_params: _,
       } => to_csrf_token(CALLBACK),
       Route::Colophon {} => to_csrf_token(COLOPHON),
+      Route::Profile {} => to_csrf_token(PROFILE),
       _ => to_csrf_token(HOME),
     }
   }

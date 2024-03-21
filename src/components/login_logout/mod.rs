@@ -2,6 +2,7 @@ use self::client_state::ClientState;
 use self::errors::Error;
 use self::oidc::AuthRequest;
 use self::props::client::ClientProps;
+use crate::components::login_logout::constants::DIOXUS_FRONT_ISSUER_URL;
 use crate::components::template::TokenState;
 use crate::log::LogId;
 use crate::route::Route;
@@ -32,7 +33,7 @@ pub fn LoginLogout(cx: Scope) -> Element {
     calc_has_token_response(use_shared_state_token_state_option);
 
   let button_label: &str = if has_token_response {
-    "Profile"
+    "Logout"
   } else {
     "Login"
   };
@@ -213,6 +214,32 @@ async fn login_async(
   let _result = window.open_with_url_and_target(authorize_url_str, "_self");
 }
 
+fn logout(
+  cx: Scope,
+  use_shared_state_token_state_option: Option<&UseSharedState<TokenState>>,
+) {
+  let use_shared_state_token_state: &UseSharedState<TokenState> =
+    use_shared_state_token_state_option.unwrap();
+
+  to_owned![use_shared_state_token_state];
+
+  cx.spawn(async move {
+    logout_async(use_shared_state_token_state).await;
+  });
+}
+
+async fn logout_async(
+  use_shared_state_token_state: UseSharedState<TokenState>
+) {
+  *use_shared_state_token_state.write() = TokenState::default();
+
+  // TODO: Delete other state
+
+  // TODO: Delete user data
+
+  revoke_token().await;
+}
+
 fn on_click(
   cx: Scope,
   use_shared_state_client_state_option: Option<&UseSharedState<ClientState>>,
@@ -224,9 +251,7 @@ fn on_click(
     calc_has_token_response(use_shared_state_token_state_option);
 
   if has_token_response {
-    let navigator: &Navigator = use_navigator(cx);
-
-    navigator.push(Route::Profile {});
+    logout(cx, use_shared_state_token_state_option);
   } else {
     login(cx, use_shared_state_client_state_option);
   };
@@ -234,4 +259,19 @@ fn on_click(
 
 fn on_mounted() {
   log::trace!("{} LoginLogout.on_mounted()", LogId::L032);
+}
+
+async fn revoke_token() {
+  // TODO: disable token with server
+  // https://docs.aws.amazon.com/cognito/latest/developerguide/revocation-endpoint.html
+  // https://docs.aws.amazon.com/cognito/latest/developerguide/token-revocation.html
+
+  log::trace!("{} Profile.revoke_token()", LogId::L044);
+
+  let client = reqwest::Client::new();
+
+  let revoke_url: String = format!("{DIOXUS_FRONT_ISSUER_URL}/oauth2/revoke");
+
+  // TODO
+  let _result = client.post(revoke_url).body("").send().await;
 }
