@@ -54,14 +54,13 @@ pub fn LoginLogout(cx: Scope) -> Element {
   }
 }
 
-// TODO: move this
-pub fn calc_has_token_response(
+pub fn extract_token_response(
   use_shared_state_token_state_option: Option<&UseSharedState<TokenState>>
-) -> bool {
+) -> Option<CoreTokenResponse> {
   if use_shared_state_token_state_option.is_none() {
     log::trace!("{} No token state.", LogId::L037);
 
-    return false;
+    return None;
   }
 
   let use_shared_state_token_state: &UseSharedState<TokenState> =
@@ -76,7 +75,7 @@ pub fn calc_has_token_response(
   if core_token_response_option_ref.is_none() {
     log::trace!("{} No token response.", LogId::L040);
 
-    return false;
+    return None;
   }
 
   let core_token_response_ref_option: Option<&CoreTokenResponse> =
@@ -85,16 +84,22 @@ pub fn calc_has_token_response(
   let core_token_response_ref: &CoreTokenResponse =
     core_token_response_ref_option.unwrap();
 
-  log::debug!(
-    "{} Token response: {core_token_response_ref:#?}",
-    LogId::L045
-  );
+  let core_token_response: CoreTokenResponse = core_token_response_ref.clone();
+
+  log::debug!("{} Token response: {core_token_response:#?}", LogId::L045);
 
   // TODO: Check that the token has not expired
 
   // TODO: Schedule a token refresh
 
-  true
+  Some(core_token_response)
+}
+
+// TODO: move this
+pub fn calc_has_token_response(
+  use_shared_state_token_state_option: Option<&UseSharedState<TokenState>>
+) -> bool {
+  extract_token_response(use_shared_state_token_state_option).is_some()
 }
 
 pub async fn initialize_oidc_client(
