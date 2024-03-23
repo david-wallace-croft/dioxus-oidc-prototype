@@ -8,6 +8,7 @@ name = "dioxus-oidc-prototype"
 publish = false
 readme = "README.md"
 repository = "https://github.com/david-wallace-croft/dioxus-oidc-prototype"
+rust-version = "1.65"
 version = "0.0.0-SNAPSHOT"
 
 [[bin]]
