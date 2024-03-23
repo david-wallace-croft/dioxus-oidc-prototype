@@ -25,7 +25,18 @@ pub fn Profile(cx: Scope) -> Element {
       style: "text-align: left; white-space: pre-wrap;",
     "{token_string}"
     }
+    if let Some(id_token) = core_token_response.extra_fields().id_token() {
+      let id_token_string = format!("{:#?}", id_token);
+
+      render! {
+      h2 { "ID Token" }
+      div {
+        style: "text-align: left; white-space: pre-wrap;",
+      "{id_token_string}"
+      }
+      }
     }
+  }
   }
   }
   }
