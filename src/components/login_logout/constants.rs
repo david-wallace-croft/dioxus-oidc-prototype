@@ -1,7 +1,7 @@
-pub const DIOXUS_FRONT_CLIENT_ID: &str = "3pau2jpn1kpu5f3ej7b1m0dn0q";
+pub const DIOXUS_FRONT_CLIENT_ID: &str = "13s034be0v4mg51vuvd6qbsok3";
 
 pub const DIOXUS_FRONT_ISSUER_URL: &str =
-  "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PEXRyPZNF";
+  "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_ipLthXQRX";
 
 pub const STORAGE_KEY_CURRENT_ROUTE: &str = "current_route";
 
